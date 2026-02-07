@@ -4,7 +4,8 @@
   "scripts": {
     "build": "turbo build",
     "typecheck": "turbo typecheck",
-    "dev": "turbo dev"
+    "dev": "turbo dev",
+    "test:s2": "cd apps/server && bun run scripts/test-s2.ts"
   },
   "devDependencies": {
     "turbo": "^2"

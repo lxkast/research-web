@@ -1,6 +1,6 @@
 import { Context, Effect, Layer } from "effect"
 import type { Researcher, Paper } from "@research-web/shared"
-import type { ApiError } from "../errors.js"
+import { ApiError } from "../errors.js"
 
 export interface OpenAlexServiceI {
   readonly searchAuthor: (query: string) => Effect.Effect<Researcher, ApiError>
@@ -14,7 +14,7 @@ export class OpenAlexService extends Context.Tag("OpenAlexService")<
 >() {}
 
 export const OpenAlexServiceStub = Layer.succeed(OpenAlexService, {
-  searchAuthor: () => Effect.die("not implemented"),
-  getAuthorPapers: () => Effect.die("not implemented"),
-  batchGetPapers: () => Effect.die("not implemented"),
+  searchAuthor: () => Effect.fail(new ApiError({ message: "OpenAlex not implemented" })),
+  getAuthorPapers: () => Effect.fail(new ApiError({ message: "OpenAlex not implemented" })),
+  batchGetPapers: () => Effect.fail(new ApiError({ message: "OpenAlex not implemented" })),
 })
