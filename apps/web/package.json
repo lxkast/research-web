@@ -1,0 +1,15 @@
+{
+  "name": "@research-web/web",
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@research-web/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.6"
+  }
+}
