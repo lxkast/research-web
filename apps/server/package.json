@@ -4,13 +4,18 @@
   "type": "module",
   "scripts": {
     "build": "tsc -b",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "dev": "bun run --watch src/main.ts",
+    "start": "bun run src/main.ts"
   },
   "dependencies": {
-    "@research-web/shared": "workspace:*"
+    "@effect/platform": "^0.94.3",
+    "@effect/platform-bun": "^0.87.1",
+    "@research-web/shared": "workspace:*",
+    "effect": "^3"
   },
   "devDependencies": {
-    "typescript": "^5.6",
-    "bun-types": "^1"
+    "bun-types": "^1",
+    "typescript": "^5.6"
   }
 }
