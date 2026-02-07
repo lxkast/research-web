@@ -2,4 +2,5 @@ export { SemanticScholarService, SemanticScholarServiceStub, SemanticScholarServ
 export { OpenAlexService, OpenAlexServiceStub } from "./OpenAlexService.js"
 export { LlmService, LlmServiceStub } from "./LlmService.js"
 export { ResearchGraphService, ResearchGraphServiceStub } from "./ResearchGraphService.js"
-export { WebSocketHubService, WebSocketHubServiceStub } from "./WebSocketHubService.js"
+export { WebSocketHubService, WebSocketHubServiceStub, WebSocketHubServiceLive } from "./WebSocketHubService.js"
+export type { WsData } from "./WebSocketHubService.js"

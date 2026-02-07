@@ -144,3 +144,27 @@ body {
   border-color: var(--green);
   color: var(--text);
 }
+
+/* WS status indicator */
+.ws-status {
+  position: absolute;
+  top: 56px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 11px;
+  color: var(--text-muted);
+  z-index: 10;
+}
+
+.ws-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
