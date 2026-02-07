@@ -3,13 +3,25 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "build": "tsc -b",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@research-web/shared": "workspace:*"
+    "@antv/g6": "^5.0.51",
+    "@antv/g6-extension-react": "^0.2.6",
+    "@research-web/shared": "workspace:*",
+    "effect": "^3",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "zustand": "^5.0.11"
   },
   "devDependencies": {
-    "typescript": "^5.6"
+    "@types/react": "^19.2.13",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.3",
+    "typescript": "^5.6",
+    "vite": "^7.3.1"
   }
 }
