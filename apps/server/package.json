@@ -6,7 +6,8 @@
     "build": "tsc -b",
     "typecheck": "tsc --noEmit",
     "dev": "bun run --watch src/main.ts",
-    "start": "bun run src/main.ts"
+    "start": "bun run src/main.ts",
+    "test": "bun test"
   },
   "dependencies": {
     "@effect/platform": "^0.94.3",

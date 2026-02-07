@@ -2,7 +2,7 @@ import { useEffect, useCallback, useRef } from "react"
 import { useStore } from "../store/index.ts"
 import type { ClientMessageType, ServerMessageType } from "@research-web/shared"
 
-function dispatchServerMessage(msg: ServerMessageType) {
+export function dispatchServerMessage(msg: ServerMessageType) {
   const { addNodes, addEdges, setExplorationComplete } = useStore.getState()
 
   switch (msg.type) {

@@ -5,6 +5,7 @@
     "build": "turbo build",
     "typecheck": "turbo typecheck",
     "dev": "turbo dev",
+    "test": "turbo test",
     "test:s2": "cd apps/server && bun run scripts/test-s2.ts"
   },
   "devDependencies": {
