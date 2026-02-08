@@ -53,7 +53,7 @@ const OAAuthorSearchResponse = Schema.Struct({
 
 const OAWork = Schema.Struct({
   id: Schema.String,
-  title: Schema.String,
+  title: Schema.NullOr(Schema.String),
   abstract_inverted_index: Schema.NullOr(
     Schema.Record({ key: Schema.String, value: Schema.Array(Schema.Number) })
   ),
@@ -106,7 +106,7 @@ const mapOAAuthor = (a: OAAuthorType): Researcher => ({
   hIndex: a.summary_stats.h_index,
 })
 
-const mapOAWork = (w: OAWorkType): Paper => ({
+const mapOAWork = (w: OAWorkType & { title: string }): Paper => ({
   id: stripOAPrefix(w.id),
   title: w.title,
   abstract: Option.fromNullable(reconstructAbstract(w.abstract_inverted_index)),
@@ -193,7 +193,7 @@ export const OpenAlexServiceLive = Layer.effect(
         fetchJson(
           `/works?filter=authorships.author.id:${encodeURIComponent(authorId)}&sort=publication_date:desc&per_page=100&select=${WORK_SELECT}`,
           OAWorksResponse,
-        ).pipe(Effect.map((res) => res.results.map(mapOAWork))),
+        ).pipe(Effect.map((res) => res.results.filter((w): w is OAWorkType & { title: string } => w.title != null).map(mapOAWork))),
 
       batchGetPapers: (paperIds) => {
         if (paperIds.length === 0) return Effect.succeed([])
@@ -201,20 +201,20 @@ export const OpenAlexServiceLive = Layer.effect(
         return fetchJson(
           `/works?filter=openalex:${filter}&per_page=100&select=${WORK_SELECT}`,
           OAWorksResponse,
-        ).pipe(Effect.map((res) => res.results.map(mapOAWork)))
+        ).pipe(Effect.map((res) => res.results.filter((w): w is OAWorkType & { title: string } => w.title != null).map(mapOAWork)))
       },
 
       getCitations: (paperId) =>
         fetchJson(
           `/works?filter=cites:${encodeURIComponent(paperId)},from_publication_date:2023-01-01&sort=publication_date:desc&per_page=100&select=${WORK_SELECT}`,
           OAWorksResponse,
-        ).pipe(Effect.map((res) => res.results.map(mapOAWork))),
+        ).pipe(Effect.map((res) => res.results.filter((w): w is OAWorkType & { title: string } => w.title != null).map(mapOAWork))),
 
       getReferences: (paperId) =>
         fetchJson(
           `/works?filter=cited_by:${encodeURIComponent(paperId)},from_publication_date:2023-01-01&sort=publication_date:desc&per_page=100&select=${WORK_SELECT}`,
           OAWorksResponse,
-        ).pipe(Effect.map((res) => res.results.map(mapOAWork))),
+        ).pipe(Effect.map((res) => res.results.filter((w): w is OAWorkType & { title: string } => w.title != null).map(mapOAWork))),
     })
   }),
 )
