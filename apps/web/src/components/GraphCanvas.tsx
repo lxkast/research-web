@@ -150,7 +150,7 @@ export function GraphCanvas() {
             },
             iterations: 3,
           },
-          center: { x: 0, y: 0, strength: 0.05 },
+          center: { x: container.clientWidth / 2, y: container.clientHeight / 2, strength: 0.05 },
         },
         behaviors: ["drag-canvas", "zoom-canvas", "drag-element", "collapse-expand"],
       })
