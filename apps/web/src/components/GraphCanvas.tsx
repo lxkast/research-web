@@ -48,14 +48,17 @@ function nodeSize(nodeType: string, nodeId?: string): [number, number] {
 
 function toG6Nodes(
   nodes: GraphNodeType[],
-  nodeToCombo: Map<string, string>
+  nodeToCombo: Map<string, string>,
+  positions?: Map<string, [number, number]>
 ) {
   return nodes.map((n) => {
     const comboId = nodeToCombo.get(n.data.id)
+    const pos = positions?.get(n.data.id)
     return {
       id: n.data.id,
       data: { nodeType: n.type, nodeData: n.data },
       ...(comboId ? { combo: "combo-" + comboId } : {}),
+      ...(pos ? { style: { x: pos[0], y: pos[1] } } : {}),
     }
   })
 }
@@ -138,8 +141,8 @@ export function GraphCanvas() {
         },
         layout: {
           type: "d3-force",
-          manyBody: { strength: -200 },
-          link: { distance: 200 },
+          manyBody: { strength: -100 },
+          link: { distance: 400 },
           collide: { radius: 120 },
         },
         behaviors: ["drag-canvas", "zoom-canvas", "drag-element", "collapse-expand"],
@@ -173,13 +176,47 @@ export function GraphCanvas() {
         if (!graphChanged && !papersChanged) return
 
         if (graphChanged) {
+          const CHILD_RADIUS = 400
+
           const addedCombos = state.combos.slice(prevCombos).map((c) => ({
             id: "combo-" + c.comboId,
             data: { label: c.label },
           }))
 
-          const addedNodes = toG6Nodes(state.nodes.slice(prevNodes), state.nodeToCombo)
           const addedEdges = toG6Edges(state.edges.slice(prevEdges), prevEdges)
+          const newNodes = state.nodes.slice(prevNodes)
+          const newNodeIds = new Set(newNodes.map((n) => n.data.id))
+
+          // Identify expanded nodes: sources of new edges that already exist in the graph
+          const newStoreEdges = state.edges.slice(prevEdges)
+          const expandedNodeIds = new Set<string>()
+          for (const e of newStoreEdges) {
+            if (!newNodeIds.has(e.source)) {
+              expandedNodeIds.add(e.source)
+            }
+          }
+
+          // Build position map for new children
+          const positionMap = new Map<string, [number, number]>()
+
+          for (const expandedId of expandedNodeIds) {
+            const pos = graph!.getElementPosition(expandedId)
+            const ex = pos[0]
+            const ey = pos[1]
+
+            // Find children of this expanded node among new nodes
+            const children = newStoreEdges
+              .filter((e) => e.source === expandedId && newNodeIds.has(e.target))
+              .map((e) => e.target)
+
+            // Place children in circle around expanded node
+            for (let i = 0; i < children.length; i++) {
+              const angle = (2 * Math.PI * i) / children.length - Math.PI / 2
+              const cx = ex + CHILD_RADIUS * Math.cos(angle)
+              const cy = ey + CHILD_RADIUS * Math.sin(angle)
+              positionMap.set(children[i], [cx, cy])
+            }
+          }
 
           prevNodes = newNodeCount
           prevEdges = newEdgeCount
@@ -188,13 +225,14 @@ export function GraphCanvas() {
           if (addedCombos.length > 0) {
             graph!.addComboData(addedCombos)
           }
+
+          const addedNodes = toG6Nodes(newNodes, state.nodeToCombo, positionMap)
           if (addedNodes.length > 0 || addedEdges.length > 0) {
             graph!.addData({ nodes: addedNodes, edges: addedEdges })
           }
         }
 
         if (papersChanged) {
-          // Update sizes for frontier nodes that now have papers
           for (const [frontierId, papers] of state.frontierPapers) {
             graph!.updateNodeData([{
               id: frontierId,
@@ -206,6 +244,7 @@ export function GraphCanvas() {
         }
 
         graph!.render().catch(() => {})
+
       })
     })
 
