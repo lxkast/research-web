@@ -10,6 +10,8 @@ import { ContributorNode } from "./nodes/ContributorNode.tsx"
 
 register(ExtensionCategory.NODE, "react", ReactNode)
 
+export const graphRef: { current: Graph | null } = { current: null }
+
 function renderNode(nodeType: GraphNodeType["type"], nodeData: unknown) {
   switch (nodeType) {
     case "researcher":
@@ -75,7 +77,6 @@ function toG6Edges(edges: { source: string; target: string; type?: string }[], o
 
 export function GraphCanvas() {
   const containerRef = useRef<HTMLDivElement>(null)
-  const graphRef = useRef<Graph | null>(null)
 
   useEffect(() => {
     const container = containerRef.current
