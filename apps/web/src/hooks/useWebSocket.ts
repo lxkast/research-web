@@ -1,42 +1,60 @@
 import { useEffect, useCallback, useRef } from "react"
-import { Schema } from "effect"
+import { Effect, Schema } from "effect"
 import { useStore } from "../store/index.ts"
 import { ServerMessage } from "@research-web/shared"
+import { DecodeError } from "../lib/errors.ts"
 import type { ClientMessageType, ServerMessageType } from "@research-web/shared"
 
-const decodeServerMessage = Schema.decodeUnknownSync(ServerMessage)
+const decodeServerMessage = Schema.decodeUnknown(ServerMessage)
 
-export function dispatchServerMessage(msg: ServerMessageType) {
-  const state = useStore.getState()
-  const { addNodes, addEdges, setExplorationComplete, setFrontierPapers, clearAllExplorations, addError } = state
+const dispatchEffect = (msg: ServerMessageType): Effect.Effect<void> =>
+  Effect.sync(() => {
+    const state = useStore.getState()
+    const { addNodes, addEdges, setExplorationComplete, setFrontierPapers, clearAllExplorations, addError } = state
 
-  switch (msg.type) {
-    case "researcher_found":
-      addNodes([msg.node])
-      state.setExplorationActive(state.sessionId)
-      break
-    case "frontiers_discovered":
-      addNodes([...msg.nodes])
-      addEdges([...msg.edges])
-      break
-    case "papers_collected": {
-      const papers = msg.nodes
-        .filter((n) => n.type === "paper")
-        .map((n) => n.data as import("@research-web/shared").PaperType)
-      setFrontierPapers(msg.frontierId, papers)
-      break
+    switch (msg.type) {
+      case "researcher_found":
+        addNodes([msg.node])
+        state.setExplorationActive(state.sessionId)
+        break
+      case "frontiers_discovered":
+        addNodes([...msg.nodes])
+        addEdges([...msg.edges])
+        break
+      case "papers_collected": {
+        const papers = msg.nodes
+          .filter((n) => n.type === "paper")
+          .map((n) => n.data as import("@research-web/shared").PaperType)
+        setFrontierPapers(msg.frontierId, papers)
+        break
+      }
+      case "exploration_complete":
+        setExplorationComplete(msg.explorationId)
+        break
+      case "exploration_cancelled":
+        clearAllExplorations()
+        break
+      case "error":
+        addError(msg.message)
+        break
     }
-    case "exploration_complete":
-      setExplorationComplete(msg.explorationId)
-      break
-    case "exploration_cancelled":
-      clearAllExplorations()
-      break
-    case "error":
-      addError(msg.message)
-      break
-  }
+  })
+
+export function dispatchServerMessage(msg: ServerMessageType): void {
+  Effect.runSync(dispatchEffect(msg))
 }
+
+const handleMessage = (data: string): Effect.Effect<void, DecodeError> =>
+  Effect.gen(function* () {
+    const raw = yield* Effect.try({
+      try: () => JSON.parse(data) as unknown,
+      catch: (e) => new DecodeError({ message: e instanceof Error ? e.message : "JSON parse failed", raw: data }),
+    })
+    const msg = yield* decodeServerMessage(raw).pipe(
+      Effect.mapError((e) => new DecodeError({ message: `Schema decode failed: ${e.message}`, raw }))
+    )
+    yield* dispatchEffect(msg)
+  })
 
 export function useWebSocket(url: string) {
   const wsRef = useRef<WebSocket | null>(null)
@@ -61,13 +79,7 @@ export function useWebSocket(url: string) {
 
     ws.onmessage = (event) => {
       if (cancelled) return
-      try {
-        const raw = JSON.parse(event.data)
-        const msg = decodeServerMessage(raw)
-        dispatchServerMessage(msg)
-      } catch {
-        // ignore malformed messages
-      }
+      Effect.runSync(handleMessage(event.data).pipe(Effect.catchAll(() => Effect.void)))
     }
 
     ws.onclose = () => {

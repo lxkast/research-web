@@ -1,5 +1,7 @@
+import { Effect } from "effect"
 import type { FrontierType } from "@research-web/shared"
 import { useStore } from "../../store/index.ts"
+import { expandFrontier, elaborateFrontier } from "../../lib/actions.ts"
 
 export function FrontierNode({ data }: { data: FrontierType }) {
   const papers = useStore((s) => s.frontierPapers.get(data.id))
@@ -25,20 +27,14 @@ export function FrontierNode({ data }: { data: FrontierType }) {
       <div className="node-actions">
         <button
           disabled={isLoading}
-          onClick={() => {
-            useStore.getState().sendWsMessage?.({ type: "expand", frontierId: data.id })
-            useStore.getState().setExplorationActive(data.id)
-          }}
+          onClick={() => Effect.runSync(expandFrontier(data.id))}
         >
           {isLoading ? "Loading\u2026" : "Expand"}
         </button>
         {!hasPapers && (
           <button
             disabled={isLoading}
-            onClick={() => {
-              useStore.getState().sendWsMessage?.({ type: "elaborate", frontierId: data.id })
-              useStore.getState().setExplorationActive(data.id)
-            }}
+            onClick={() => Effect.runSync(elaborateFrontier(data.id))}
           >
             {isLoading ? "Loading\u2026" : "Elaborate"}
           </button>

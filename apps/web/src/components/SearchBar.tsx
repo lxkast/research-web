@@ -1,27 +1,27 @@
 import { useState, type FormEvent } from "react"
+import { Effect } from "effect"
 import { useStore } from "../store/index.ts"
-import { explore } from "../lib/api.ts"
+import { searchResearcher } from "../lib/actions.ts"
 
 export function SearchBar() {
   const [query, setQuery] = useState("")
   const [loading, setLoading] = useState(false)
   const sessionId = useStore((s) => s.sessionId)
-  const reset = useStore((s) => s.reset)
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     const name = query.trim()
     if (!name || loading) return
 
-    reset()
     setLoading(true)
-    try {
-      await explore(name, sessionId)
-    } catch (err) {
-      console.error("explore failed:", err)
-    } finally {
-      setLoading(false)
-    }
+    await Effect.runPromise(
+      searchResearcher(name, sessionId).pipe(
+        Effect.catchAll((error) =>
+          Effect.sync(() => console.error("explore failed:", error._tag, error.message))
+        ),
+        Effect.ensuring(Effect.sync(() => setLoading(false)))
+      )
+    )
   }
 
   return (

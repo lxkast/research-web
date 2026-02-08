@@ -1,18 +1,18 @@
+import { Effect } from "effect"
 import { useStore } from "../store/index.ts"
+import { stopExploration, resetStore } from "../lib/actions.ts"
 
 export function Toolbar() {
   const hasActive = useStore((s) => s.activeExplorations.size > 0)
-  const sendWsMessage = useStore((s) => s.sendWsMessage)
-  const reset = useStore((s) => s.reset)
 
   return (
     <div className="toolbar">
       {hasActive && (
-        <button onClick={() => sendWsMessage?.({ type: "stop" })}>
+        <button onClick={() => Effect.runSync(stopExploration)}>
           Stop
         </button>
       )}
-      <button onClick={reset}>Reset</button>
+      <button onClick={() => Effect.runSync(resetStore)}>Reset</button>
     </div>
   )
 }
