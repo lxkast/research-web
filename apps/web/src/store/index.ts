@@ -2,6 +2,7 @@ import { create } from "zustand"
 import type { GraphNodeType, GraphEdgeType } from "@research-web/shared"
 
 interface AppState {
+  sessionId: string
   nodes: GraphNodeType[]
   edges: GraphEdgeType[]
   wsStatus: "disconnected" | "connecting" | "connected"
@@ -18,6 +19,7 @@ interface AppState {
 }
 
 const initialState = {
+  sessionId: crypto.randomUUID(),
   nodes: [] as GraphNodeType[],
   edges: [] as GraphEdgeType[],
   wsStatus: "disconnected" as const,
@@ -52,5 +54,12 @@ export const useStore = create<AppState>()((set) => ({
       return { activeExplorations: next }
     }),
 
-  reset: () => set(initialState),
+  reset: () =>
+    set((state) => ({
+      nodes: [],
+      edges: [],
+      activeExplorations: new Set<string>(),
+      selectedNode: null,
+      sessionId: state.sessionId,
+    })),
 }))

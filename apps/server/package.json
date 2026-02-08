@@ -10,6 +10,7 @@
     "test": "bun test"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.74.0",
     "@effect/platform": "^0.94.3",
     "@effect/platform-bun": "^0.87.1",
     "@research-web/shared": "workspace:*",

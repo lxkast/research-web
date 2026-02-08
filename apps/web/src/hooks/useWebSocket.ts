@@ -1,6 +1,10 @@
 import { useEffect, useCallback, useRef } from "react"
+import { Schema } from "effect"
 import { useStore } from "../store/index.ts"
+import { ServerMessage } from "@research-web/shared"
 import type { ClientMessageType, ServerMessageType } from "@research-web/shared"
+
+const decodeServerMessage = Schema.decodeUnknownSync(ServerMessage)
 
 export function dispatchServerMessage(msg: ServerMessageType) {
   const { addNodes, addEdges, setExplorationComplete } = useStore.getState()
@@ -45,7 +49,8 @@ export function useWebSocket(url: string) {
     ws.onmessage = (event) => {
       if (cancelled) return
       try {
-        const msg = JSON.parse(event.data) as ServerMessageType
+        const raw = JSON.parse(event.data)
+        const msg = decodeServerMessage(raw)
         dispatchServerMessage(msg)
       } catch {
         // ignore malformed messages

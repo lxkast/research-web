@@ -1,16 +1,18 @@
-import { Context, Effect, Layer } from "effect"
+import { Context, Effect, Layer, Schema } from "effect"
 import type { ServerWebSocket } from "bun"
-import type { ServerMessage } from "@research-web/shared"
+import { ServerMessage } from "@research-web/shared"
 
 export interface WsData {
   sessionId: string
 }
 
+const encodeServerMessage = Schema.encodeSync(ServerMessage)
+
 export interface WebSocketHubServiceI {
   readonly register: (sessionId: string, ws: ServerWebSocket<WsData>) => Effect.Effect<void>
   readonly unregister: (ws: ServerWebSocket<WsData>) => Effect.Effect<void>
-  readonly broadcast: (clientId: string, message: ServerMessage) => Effect.Effect<void>
-  readonly broadcastAll: (message: ServerMessage) => Effect.Effect<void>
+  readonly broadcast: (clientId: string, message: typeof ServerMessage.Type) => Effect.Effect<void>
+  readonly broadcastAll: (message: typeof ServerMessage.Type) => Effect.Effect<void>
 }
 
 export class WebSocketHubService extends Context.Tag("WebSocketHubService")<
@@ -51,14 +53,14 @@ export const WebSocketHubServiceLive = Layer.sync(WebSocketHubService, () => {
       Effect.sync(() => {
         const sockets = sessionToWs.get(clientId)
         if (sockets) {
-          const payload = JSON.stringify(message)
+          const payload = JSON.stringify(encodeServerMessage(message))
           for (const ws of sockets) ws.send(payload)
         }
       }),
 
     broadcastAll: (message) =>
       Effect.sync(() => {
-        const payload = JSON.stringify(message)
+        const payload = JSON.stringify(encodeServerMessage(message))
         for (const ws of wsToSession.keys()) ws.send(payload)
       }),
   }

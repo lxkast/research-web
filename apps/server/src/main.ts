@@ -1,32 +1,41 @@
 import { HttpApiBuilder, HttpMiddleware, HttpServer } from "@effect/platform"
+import { FetchHttpClient } from "@effect/platform"
 import { Effect, Layer, ManagedRuntime, Schema } from "effect"
 import { ClientMessage } from "@research-web/shared"
 import { Api } from "./api/routes.js"
 import {
-  SemanticScholarServiceStub,
+  SemanticScholarServiceLive,
   OpenAlexServiceStub,
-  LlmServiceStub,
-  ResearchGraphServiceStub,
+  LlmServiceLive,
+  ResearchGraphServiceLive,
   WebSocketHubService,
   WebSocketHubServiceLive,
 } from "./services/index.js"
 import type { WsData } from "./services/index.js"
+import { startExploration } from "./agents/Orchestrator.js"
 
 // --- Effect layers ---
 
 const ApiGroupLive = HttpApiBuilder.group(Api, "api", (handlers) =>
-  handlers.handle("health", () =>
-    Effect.succeed({ status: "ok" })
-  )
+  handlers
+    .handle("health", () =>
+      Effect.succeed({ status: "ok" })
+    )
+    .handle("explore", ({ payload }) =>
+      Effect.sync(() => {
+        appRuntime.runFork(startExploration(payload.sessionId, payload.name))
+        return { sessionId: payload.sessionId }
+      })
+    )
 )
 
 const ApiLive = HttpApiBuilder.api(Api).pipe(Layer.provide(ApiGroupLive))
 
 const ServiceLayer = Layer.mergeAll(
-  SemanticScholarServiceStub,
+  SemanticScholarServiceLive.pipe(Layer.provide(FetchHttpClient.layer)),
   OpenAlexServiceStub,
-  LlmServiceStub,
-  ResearchGraphServiceStub,
+  LlmServiceLive,
+  ResearchGraphServiceLive,
   WebSocketHubServiceLive,
 )
 
@@ -76,8 +85,17 @@ Bun.serve<WsData>({
       try {
         const parsed = JSON.parse(typeof raw === "string" ? raw : new TextDecoder().decode(raw))
         const msg = decodeClientMessage(parsed)
-        const echo = JSON.stringify({ type: "error", message: `echo: ${JSON.stringify(msg)}` })
-        ws.send(echo)
+        switch (msg.type) {
+          case "stop":
+            console.log(`[ws] stop requested by ${ws.data.sessionId}`)
+            break
+          case "expand":
+            console.log(`[ws] expand requested for frontier ${msg.frontierId}`)
+            break
+          case "elaborate":
+            console.log(`[ws] elaborate requested for frontier ${msg.frontierId}`)
+            break
+        }
       } catch (err) {
         ws.send(JSON.stringify({ type: "error", message: `invalid message: ${String(err)}` }))
       }
