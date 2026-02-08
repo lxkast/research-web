@@ -1,5 +1,5 @@
 import { create } from "zustand"
-import type { GraphNodeType, GraphEdgeType } from "@research-web/shared"
+import type { GraphNodeType, GraphEdgeType, ClientMessageType } from "@research-web/shared"
 
 interface AppState {
   sessionId: string
@@ -8,6 +8,7 @@ interface AppState {
   wsStatus: "disconnected" | "connecting" | "connected"
   activeExplorations: Set<string>
   selectedNode: string | null
+  sendWsMessage: ((msg: ClientMessageType) => void) | null
 
   addNodes: (nodes: GraphNodeType[]) => void
   addEdges: (edges: GraphEdgeType[]) => void
@@ -15,6 +16,7 @@ interface AppState {
   setSelectedNode: (id: string | null) => void
   setExplorationActive: (id: string) => void
   setExplorationComplete: (id: string) => void
+  setSendWsMessage: (fn: ((msg: ClientMessageType) => void) | null) => void
   reset: () => void
 }
 
@@ -25,6 +27,7 @@ const initialState = {
   wsStatus: "disconnected" as const,
   activeExplorations: new Set<string>(),
   selectedNode: null as string | null,
+  sendWsMessage: null as ((msg: ClientMessageType) => void) | null,
 }
 
 export const useStore = create<AppState>()((set) => ({
@@ -53,6 +56,8 @@ export const useStore = create<AppState>()((set) => ({
       next.delete(id)
       return { activeExplorations: next }
     }),
+
+  setSendWsMessage: (fn) => set({ sendWsMessage: fn }),
 
   reset: () =>
     set((state) => ({

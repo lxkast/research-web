@@ -44,6 +44,11 @@ export function useWebSocket(url: string) {
     ws.onopen = () => {
       if (cancelled) return ws.close()
       setWsStatus("connected")
+      useStore.getState().setSendWsMessage((msg) => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify(msg))
+        }
+      })
     }
 
     ws.onmessage = (event) => {
@@ -69,6 +74,7 @@ export function useWebSocket(url: string) {
 
     return () => {
       cancelled = true
+      useStore.getState().setSendWsMessage(null)
       if (ws.readyState === WebSocket.OPEN) {
         ws.close()
       }

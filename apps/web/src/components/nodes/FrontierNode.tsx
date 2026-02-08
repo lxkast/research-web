@@ -1,4 +1,5 @@
 import type { FrontierType } from "@research-web/shared"
+import { useStore } from "../../store/index.ts"
 
 export function FrontierNode({ data }: { data: FrontierType }) {
   return (
@@ -6,7 +7,15 @@ export function FrontierNode({ data }: { data: FrontierType }) {
       <div className="node-title">{data.label}</div>
       <div className="node-summary">{data.summary}</div>
       <div className="node-actions">
-        <button onClick={() => console.log("expand", data.id)}>Expand</button>
+        <button
+          onClick={() =>
+            useStore
+              .getState()
+              .sendWsMessage?.({ type: "expand", frontierId: data.id })
+          }
+        >
+          Expand
+        </button>
         <button onClick={() => console.log("elaborate", data.id)}>
           Elaborate
         </button>

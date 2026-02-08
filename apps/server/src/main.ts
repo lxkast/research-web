@@ -12,7 +12,7 @@ import {
   WebSocketHubServiceLive,
 } from "./services/index.js"
 import type { WsData } from "./services/index.js"
-import { startExploration } from "./agents/Orchestrator.js"
+import { startExploration, expandFrontier } from "./agents/Orchestrator.js"
 
 // --- Effect layers ---
 
@@ -91,6 +91,7 @@ Bun.serve<WsData>({
             break
           case "expand":
             console.log(`[ws] expand requested for frontier ${msg.frontierId}`)
+            appRuntime.runFork(expandFrontier(ws.data.sessionId, msg.frontierId))
             break
           case "elaborate":
             console.log(`[ws] elaborate requested for frontier ${msg.frontierId}`)

@@ -5,6 +5,7 @@ import { ResearchGraphService } from "../services/ResearchGraphService.js"
 import { WebSocketHubService } from "../services/WebSocketHubService.js"
 import { LlmService } from "../services/LlmService.js"
 import { discover } from "./FrontierDiscovery.js"
+import { expand } from "./FrontierExpander.js"
 
 export const startExploration = (
   sessionId: string,
@@ -42,6 +43,37 @@ export const startExploration = (
         yield* hub.broadcast(sessionId, {
           type: "error",
           message: e instanceof Error ? e.message : String(e),
+        })
+      })
+    )
+  )
+
+export const expandFrontier = (
+  sessionId: string,
+  frontierId: string
+): Effect.Effect<
+  void,
+  never,
+  SemanticScholarService | ResearchGraphService | WebSocketHubService | LlmService
+> =>
+  Effect.gen(function* () {
+    const hub = yield* WebSocketHubService
+
+    const fiber = yield* Effect.fork(expand(sessionId, frontierId))
+    yield* Effect.fromFiber(fiber)
+
+    yield* hub.broadcast(sessionId, {
+      type: "exploration_complete",
+      explorationId: frontierId,
+    })
+  }).pipe(
+    Effect.catchAllCause((cause) =>
+      Effect.gen(function* () {
+        console.error("[Orchestrator] expandFrontier error:", cause)
+        const hub = yield* WebSocketHubService
+        yield* hub.broadcast(sessionId, {
+          type: "error",
+          message: `Expand failed for frontier ${frontierId}`,
         })
       })
     )

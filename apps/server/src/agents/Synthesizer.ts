@@ -66,3 +66,47 @@ export const clusterIntoFrontiers = (
   }).pipe(
     Effect.retry({ times: 2, while: (e) => e._tag === "ParseError" })
   )
+
+const subFrontierSystemPrompt = `You are a research analyst. Given a research frontier and a list of adjacent papers, identify 2-4 sub-frontiers representing where this field is heading.
+
+Return ONLY a JSON array with this structure:
+[{ "label": "Sub-Frontier Name", "summary": "One sentence describing this research direction", "paperIds": ["id1", "id2"] }]
+
+Every paper must appear in exactly one sub-frontier. Be specific and descriptive with sub-frontier labels.`
+
+export const identifySubFrontiers = (
+  frontier: Frontier,
+  papers: readonly Paper[]
+): Effect.Effect<Frontier[], LlmError | ParseError, LlmService> =>
+  Effect.gen(function* () {
+    const llm = yield* LlmService
+    const userPrompt = `Research frontier: "${frontier.label}"\nSummary: ${frontier.summary}\n\nIdentify sub-frontiers from these ${papers.length} adjacent papers:\n\n${formatPapers(papers)}`
+
+    const raw = yield* llm.complete(subFrontierSystemPrompt, userPrompt)
+    const cleaned = stripCodeFences(raw)
+
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(cleaned)
+    } catch {
+      return yield* Effect.fail(
+        new ParseError({ message: "Failed to parse LLM JSON response", raw: cleaned })
+      )
+    }
+
+    const clusters = yield* Schema.decodeUnknown(FrontierClusters)(parsed).pipe(
+      Effect.mapError(
+        (e) => new ParseError({ message: `Schema validation failed: ${e.message}`, raw: parsed })
+      )
+    )
+
+    return clusters.map((c) => ({
+      id: crypto.randomUUID(),
+      label: c.label,
+      summary: c.summary,
+      paperIds: [...c.paperIds],
+      parentId: Option.some(frontier.id),
+    }))
+  }).pipe(
+    Effect.retry({ times: 2, while: (e) => e._tag === "ParseError" })
+  )
