@@ -45,9 +45,14 @@ export const expand = (
       }
     }
 
-    const topPapers = deduped
+    let topPapers = deduped
       .sort((a, b) => b.citationCount - a.citationCount)
       .slice(0, 30)
+
+    if (topPapers.length === 0) {
+      const fallback = yield* s2.batchGetPapers(frontier.paperIds)
+      topPapers = [...fallback]
+    }
 
     const subFrontiers = yield* identifySubFrontiers(frontier, topPapers)
 

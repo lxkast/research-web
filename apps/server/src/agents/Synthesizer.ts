@@ -28,7 +28,9 @@ const backfillEmptyFrontiers = (
   return frontiers.map((f, i) => {
     const idx = emptyIndices.indexOf(i)
     if (idx < 0) return f
-    return { ...f, paperIds: pool.slice(idx * perCluster, (idx + 1) * perCluster) }
+    const slice = pool.slice(idx * perCluster, (idx + 1) * perCluster)
+    const ids = slice.length > 0 ? slice : [pool[idx % pool.length]]
+    return { ...f, paperIds: ids }
   })
 }
 
