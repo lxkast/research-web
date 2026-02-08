@@ -176,12 +176,20 @@ body {
 }
 
 .frontier-paper-item {
+  display: block;
   padding: 6px 8px;
   border-bottom: 1px solid var(--border);
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
 }
 
 .frontier-paper-item:last-child {
   border-bottom: none;
+}
+
+.frontier-paper-item:hover {
+  background: var(--bg);
 }
 
 .frontier-paper-title {

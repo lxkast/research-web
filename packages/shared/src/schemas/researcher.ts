@@ -14,6 +14,7 @@ export type Researcher = typeof Researcher.Type
 export const Paper = Schema.Struct({
   id: Schema.String,
   title: Schema.String,
+  doi: Schema.optional(Schema.String),
   abstract: Schema.optionalWith(Schema.String, { as: "Option" }),
   year: Schema.Number,
   citationCount: Schema.Number,

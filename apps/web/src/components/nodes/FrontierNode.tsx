@@ -17,12 +17,18 @@ export function FrontierNode({ data }: { data: FrontierType }) {
       {hasPapers && (
         <div className="frontier-papers">
           {papers.map((p) => (
-            <div key={p.id} className="frontier-paper-item">
+            <a
+              key={p.id}
+              className="frontier-paper-item"
+              href={p.doi ?? `https://openalex.org/${p.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <div className="frontier-paper-title">{p.title}</div>
               <div className="frontier-paper-stats">
                 {p.year} &middot; {p.citationCount} citations
               </div>
-            </div>
+            </a>
           ))}
         </div>
       )}

@@ -54,6 +54,7 @@ const OAAuthorSearchResponse = Schema.Struct({
 const OAWork = Schema.Struct({
   id: Schema.String,
   title: Schema.NullOr(Schema.String),
+  doi: Schema.NullOr(Schema.String),
   abstract_inverted_index: Schema.NullOr(
     Schema.Record({ key: Schema.String, value: Schema.Array(Schema.Number) })
   ),
@@ -109,6 +110,7 @@ const mapOAAuthor = (a: OAAuthorType): Researcher => ({
 const mapOAWork = (w: OAWorkType & { title: string }): Paper => ({
   id: stripOAPrefix(w.id),
   title: w.title,
+  doi: w.doi ?? undefined,
   abstract: Option.fromNullable(reconstructAbstract(w.abstract_inverted_index)),
   year: w.publication_year ?? 0,
   citationCount: w.cited_by_count,
@@ -130,7 +132,7 @@ const mapOAWork = (w: OAWorkType & { title: string }): Paper => ({
 const BASE_URL = "https://api.openalex.org"
 
 const AUTHOR_SELECT = "id,display_name,affiliations,works_count,cited_by_count,summary_stats"
-const WORK_SELECT = "id,title,abstract_inverted_index,publication_year,cited_by_count,authorships,topics"
+const WORK_SELECT = "id,title,doi,abstract_inverted_index,publication_year,cited_by_count,authorships,topics"
 
 const retryPolicy = Schedule.intersect(
   Schedule.exponential("1 second"),
