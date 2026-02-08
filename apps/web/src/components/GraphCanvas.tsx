@@ -175,6 +175,8 @@ export function GraphCanvas() {
 
         if (!graphChanged && !papersChanged) return
 
+        const positionMap = new Map<string, [number, number]>()
+
         if (graphChanged) {
           const CHILD_RADIUS = 400
 
@@ -195,9 +197,6 @@ export function GraphCanvas() {
               expandedNodeIds.add(e.source)
             }
           }
-
-          // Build position map for new children
-          const positionMap = new Map<string, [number, number]>()
 
           for (const expandedId of expandedNodeIds) {
             const pos = graph!.getElementPosition(expandedId)
@@ -240,10 +239,23 @@ export function GraphCanvas() {
             }])
           }
           prevFrontierPapersSize = newFrontierPapersSize
-          graph!.layout()
         }
 
-        graph!.render().catch(() => {})
+        if (positionMap.size > 0 && !papersChanged) {
+          // EXPAND: stop force sim, draw elements, then position children explicitly
+          graph!.stopLayout()
+          graph!.draw().then(() => {
+            if (destroyed) return
+            return Promise.all(
+              Array.from(positionMap.entries()).map(([id, pos]) =>
+                graph!.translateElementTo(id, pos)
+              )
+            )
+          }).catch(() => {})
+        } else {
+          // INITIAL LOAD or ELABORATE: full pipeline with d3-force layout
+          graph!.render().catch(() => {})
+        }
 
       })
     })
