@@ -168,13 +168,13 @@ body {
 
 /* Elaborated frontier with inline papers */
 .node-frontier-elaborated {
-  width: 300px;
+  width: 420px;
 }
 
 .frontier-papers {
   border: 1px solid var(--border);
   border-radius: 4px;
-  max-height: 200px;
+  max-height: 340px;
   overflow-y: auto;
   margin-bottom: 8px;
 }

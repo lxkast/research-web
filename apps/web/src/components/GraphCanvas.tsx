@@ -33,7 +33,7 @@ function nodeSize(nodeType: string, nodeId?: string): [number, number] {
       return [140, 40]
     case "frontier":
       if (nodeId && useStore.getState().frontierPapers.has(nodeId)) {
-        return [300, 350]
+        return [420, 500]
       }
       return [200, 100]
     default:
@@ -193,7 +193,7 @@ export function GraphCanvas() {
           for (const [frontierId] of state.frontierPapers) {
             graph!.updateNodeData([{
               id: frontierId,
-              style: { size: [300, 350] },
+              style: { size: [420, 500] },
             }])
           }
           prevFrontierPapersSize = newFrontierPapersSize
