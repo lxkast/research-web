@@ -34,7 +34,7 @@ const backfillEmptyFrontiers = (
   })
 }
 
-const systemPrompt = `You are a research analyst. Given a list of academic papers, cluster them into 4-6 research frontiers (thematic groups).
+const systemPrompt = `You are a research analyst. Given a list of academic papers, cluster them into 3-5 research frontiers (thematic groups).
 
 Return ONLY a JSON array with this structure:
 [{ "label": "Frontier Name", "summary": "One sentence describing this research direction", "paperIds": ["id1", "id2"] }]
@@ -94,12 +94,12 @@ export const clusterIntoFrontiers = (
       paperIds: c.paperIds.filter((id) => validIds.has(id)),
       parentId: Option.none(),
     }))
-    return backfillEmptyFrontiers(mapped, papers)
+    return backfillEmptyFrontiers(mapped.slice(0, 5), papers)
   }).pipe(
     Effect.retry({ times: 2, while: (e) => e._tag === "ParseError" })
   )
 
-const subFrontierSystemPrompt = `You are a research analyst. Given a research frontier and a list of adjacent papers, identify 2-4 sub-frontiers representing where this field is heading.
+const subFrontierSystemPrompt = `You are a research analyst. Given a research frontier and a list of adjacent papers, identify 2-5 sub-frontiers representing where this field is heading.
 
 Return ONLY a JSON array with this structure:
 [{ "label": "Sub-Frontier Name", "summary": "One sentence describing this research direction", "paperIds": ["id1", "id2"] }]
@@ -140,7 +140,7 @@ export const identifySubFrontiers = (
       paperIds: c.paperIds.filter((id) => validIds.has(id)),
       parentId: Option.some(frontier.id),
     }))
-    return backfillEmptyFrontiers(mapped, papers)
+    return backfillEmptyFrontiers(mapped.slice(0, 5), papers)
   }).pipe(
     Effect.retry({ times: 2, while: (e) => e._tag === "ParseError" })
   )

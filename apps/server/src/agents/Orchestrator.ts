@@ -110,7 +110,7 @@ export const startExploration = (
     trackFiber(sessionId, discoveryFiber)
     yield* Effect.fromFiber(discoveryFiber)
 
-    const autoFiber = yield* Effect.fork(autoExpand(sessionId, 3))
+    const autoFiber = yield* Effect.fork(autoExpand(sessionId, 1))
     trackFiber(sessionId, autoFiber)
     yield* Effect.fromFiber(autoFiber)
 
