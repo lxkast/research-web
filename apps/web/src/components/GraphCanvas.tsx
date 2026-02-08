@@ -143,7 +143,14 @@ export function GraphCanvas() {
           type: "d3-force",
           manyBody: { strength: -100 },
           link: { distance: 400 },
-          collide: { radius: 120 },
+          collide: {
+            radius: (node: Record<string, unknown>) => {
+              const [w, h] = nodeSize(node.nodeType as string, (node.nodeData as { id: string })?.id)
+              return Math.max(w, h) / 2 + 20
+            },
+            iterations: 3,
+          },
+          center: { x: 0, y: 0, strength: 0.05 },
         },
         behaviors: ["drag-canvas", "zoom-canvas", "drag-element", "collapse-expand"],
       })
@@ -158,6 +165,7 @@ export function GraphCanvas() {
       let prevEdges = edges.length
       let prevCombos = combos.length
       let prevFrontierPapersSize = state.frontierPapers.size
+      let pendingRaf: number | null = null
 
       unsubscribe = useStore.subscribe((state) => {
         if (destroyed) return
@@ -175,88 +183,108 @@ export function GraphCanvas() {
 
         if (!graphChanged && !papersChanged) return
 
-        const positionMap = new Map<string, [number, number]>()
+        // Cancel any pending frame — we'll process the latest state instead
+        if (pendingRaf !== null) {
+          cancelAnimationFrame(pendingRaf)
+        }
 
-        if (graphChanged) {
-          const CHILD_RADIUS = 400
+        pendingRaf = requestAnimationFrame(() => {
+          pendingRaf = null
+          if (destroyed) return
 
-          const addedCombos = state.combos.slice(prevCombos).map((c) => ({
-            id: "combo-" + c.comboId,
-            data: { label: c.label },
-          }))
+          // Re-read state — it may have advanced further since the subscribe fired
+          const latest = useStore.getState()
+          const latestNodeCount = latest.nodes.length
+          const latestEdgeCount = latest.edges.length
+          const latestComboCount = latest.combos.length
+          const latestFrontierPapersSize = latest.frontierPapers.size
 
-          const addedEdges = toG6Edges(state.edges.slice(prevEdges), prevEdges)
-          const newNodes = state.nodes.slice(prevNodes)
+          const batchGraphChanged =
+            latestNodeCount !== prevNodes ||
+            latestEdgeCount !== prevEdges ||
+            latestComboCount !== prevCombos
+          const batchPapersChanged = latestFrontierPapersSize !== prevFrontierPapersSize
+
+          if (!batchGraphChanged && !batchPapersChanged) return
+
+          const positionMap = new Map<string, [number, number]>()
+          const newNodes = batchGraphChanged ? latest.nodes.slice(prevNodes) : []
           const newNodeIds = new Set(newNodes.map((n) => n.data.id))
 
-          // Identify expanded nodes: sources of new edges that already exist in the graph
-          const newStoreEdges = state.edges.slice(prevEdges)
-          const expandedNodeIds = new Set<string>()
-          for (const e of newStoreEdges) {
-            if (!newNodeIds.has(e.source)) {
-              expandedNodeIds.add(e.source)
+          if (batchGraphChanged) {
+            const CHILD_RADIUS = 400
+
+            const addedCombos = latest.combos.slice(prevCombos).map((c) => ({
+              id: "combo-" + c.comboId,
+              data: { label: c.label },
+            }))
+
+            const addedEdges = toG6Edges(latest.edges.slice(prevEdges), prevEdges)
+
+            // Identify expanded nodes: sources of new edges that already exist in the graph
+            const newStoreEdges = latest.edges.slice(prevEdges)
+            const expandedNodeIds = new Set<string>()
+            for (const e of newStoreEdges) {
+              if (!newNodeIds.has(e.source)) {
+                expandedNodeIds.add(e.source)
+              }
+            }
+
+            for (const expandedId of expandedNodeIds) {
+              const pos = graph!.getElementPosition(expandedId)
+              const ex = pos[0]
+              const ey = pos[1]
+
+              // Find children of this expanded node among new nodes
+              const children = newStoreEdges
+                .filter((e) => e.source === expandedId && newNodeIds.has(e.target))
+                .map((e) => e.target)
+
+              // Place children in circle around expanded node
+              for (let i = 0; i < children.length; i++) {
+                const angle = (2 * Math.PI * i) / children.length - Math.PI / 2
+                const cx = ex + CHILD_RADIUS * Math.cos(angle)
+                const cy = ey + CHILD_RADIUS * Math.sin(angle)
+                positionMap.set(children[i], [cx, cy])
+              }
+            }
+
+            prevNodes = latestNodeCount
+            prevEdges = latestEdgeCount
+            prevCombos = latestComboCount
+
+            if (addedCombos.length > 0) {
+              graph!.addComboData(addedCombos)
+            }
+
+            const addedNodes = toG6Nodes(newNodes, latest.nodeToCombo, positionMap)
+            if (addedNodes.length > 0 || addedEdges.length > 0) {
+              graph!.addData({ nodes: addedNodes, edges: addedEdges })
             }
           }
 
-          for (const expandedId of expandedNodeIds) {
-            const pos = graph!.getElementPosition(expandedId)
-            const ex = pos[0]
-            const ey = pos[1]
-
-            // Find children of this expanded node among new nodes
-            const children = newStoreEdges
-              .filter((e) => e.source === expandedId && newNodeIds.has(e.target))
-              .map((e) => e.target)
-
-            // Place children in circle around expanded node
-            for (let i = 0; i < children.length; i++) {
-              const angle = (2 * Math.PI * i) / children.length - Math.PI / 2
-              const cx = ex + CHILD_RADIUS * Math.cos(angle)
-              const cy = ey + CHILD_RADIUS * Math.sin(angle)
-              positionMap.set(children[i], [cx, cy])
+          if (batchPapersChanged) {
+            for (const [frontierId, papers] of latest.frontierPapers) {
+              graph!.updateNodeData([{
+                id: frontierId,
+                style: { size: [420, elaboratedFrontierHeight(papers.length)] },
+              }])
             }
+            prevFrontierPapersSize = latestFrontierPapersSize
           }
 
-          prevNodes = newNodeCount
-          prevEdges = newEdgeCount
-          prevCombos = newComboCount
-
-          if (addedCombos.length > 0) {
-            graph!.addComboData(addedCombos)
+          if (batchGraphChanged) {
+            graph!.stopLayout()
+            graph!.render().catch(() => {})
+          } else {
+            // Papers changed only — redraw for size updates, then re-layout so neighbors move
+            graph!.stopLayout()
+            graph!.draw().then(() => {
+              if (destroyed) return
+              return graph!.layout()
+            }).catch(() => {})
           }
-
-          const addedNodes = toG6Nodes(newNodes, state.nodeToCombo, positionMap)
-          if (addedNodes.length > 0 || addedEdges.length > 0) {
-            graph!.addData({ nodes: addedNodes, edges: addedEdges })
-          }
-        }
-
-        if (papersChanged) {
-          for (const [frontierId, papers] of state.frontierPapers) {
-            graph!.updateNodeData([{
-              id: frontierId,
-              style: { size: [420, elaboratedFrontierHeight(papers.length)] },
-            }])
-          }
-          prevFrontierPapersSize = newFrontierPapersSize
-        }
-
-        if (positionMap.size > 0 && !papersChanged) {
-          // EXPAND: stop force sim, draw elements, then position children explicitly
-          graph!.stopLayout()
-          graph!.draw().then(() => {
-            if (destroyed) return
-            return Promise.all(
-              Array.from(positionMap.entries()).map(([id, pos]) =>
-                graph!.translateElementTo(id, pos)
-              )
-            )
-          }).catch(() => {})
-        } else {
-          // INITIAL LOAD or ELABORATE: full pipeline with d3-force layout
-          graph!.render().catch(() => {})
-        }
-
+        })
       })
     })
 

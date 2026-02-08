@@ -13,9 +13,11 @@ interface AppState {
   nodeToCombo: Map<string, string>
   frontierPapers: Map<string, PaperType[]>
   errors: Array<{ id: string; message: string }>
+  nodeDepths: Map<string, number>
 
   addNodes: (nodes: GraphNodeType[]) => void
   addEdges: (edges: GraphEdgeType[]) => void
+  addNodesAndEdges: (nodes: GraphNodeType[], edges: GraphEdgeType[]) => void
   setWsStatus: (status: AppState["wsStatus"]) => void
   setSelectedNode: (id: string | null) => void
   setExplorationActive: (id: string) => void
@@ -42,6 +44,36 @@ const initialState = {
   nodeToCombo: new Map<string, string>(),
   frontierPapers: new Map<string, PaperType[]>(),
   errors: [] as Array<{ id: string; message: string }>,
+  nodeDepths: new Map<string, number>(),
+}
+
+function computeDepths(nodes: GraphNodeType[], edges: GraphEdgeType[]): Map<string, number> {
+  const depths = new Map<string, number>()
+  const researcher = nodes.find((n) => n.type === "researcher")
+  if (!researcher) return depths
+
+  const adj = new Map<string, string[]>()
+  for (const e of edges) {
+    if (!adj.has(e.source)) adj.set(e.source, [])
+    if (!adj.has(e.target)) adj.set(e.target, [])
+    adj.get(e.source)!.push(e.target)
+    adj.get(e.target)!.push(e.source)
+  }
+
+  const rootId = researcher.data.id
+  depths.set(rootId, 0)
+  const queue = [rootId]
+  while (queue.length > 0) {
+    const current = queue.shift()!
+    const currentDepth = depths.get(current)!
+    for (const neighbor of adj.get(current) ?? []) {
+      if (!depths.has(neighbor)) {
+        depths.set(neighbor, currentDepth + 1)
+        queue.push(neighbor)
+      }
+    }
+  }
+  return depths
 }
 
 export const useStore = create<AppState>()((set) => ({
@@ -51,7 +83,17 @@ export const useStore = create<AppState>()((set) => ({
     set((state) => ({ nodes: [...state.nodes, ...nodes] })),
 
   addEdges: (edges) =>
-    set((state) => ({ edges: [...state.edges, ...edges] })),
+    set((state) => {
+      const allEdges = [...state.edges, ...edges]
+      return { edges: allEdges, nodeDepths: computeDepths(state.nodes, allEdges) }
+    }),
+
+  addNodesAndEdges: (nodes, edges) =>
+    set((state) => {
+      const allNodes = [...state.nodes, ...nodes]
+      const allEdges = [...state.edges, ...edges]
+      return { nodes: allNodes, edges: allEdges, nodeDepths: computeDepths(allNodes, allEdges) }
+    }),
 
   setWsStatus: (wsStatus) => set({ wsStatus }),
 
@@ -115,5 +157,6 @@ export const useStore = create<AppState>()((set) => ({
       nodeToCombo: new Map<string, string>(),
       frontierPapers: new Map<string, PaperType[]>(),
       errors: [],
+      nodeDepths: new Map<string, number>(),
     })),
 }))

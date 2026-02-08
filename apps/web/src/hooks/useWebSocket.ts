@@ -10,7 +10,7 @@ const decodeServerMessage = Schema.decodeUnknown(ServerMessage)
 const dispatchEffect = (msg: ServerMessageType): Effect.Effect<void> =>
   Effect.sync(() => {
     const state = useStore.getState()
-    const { addNodes, addEdges, setExplorationComplete, setFrontierPapers, clearAllExplorations, addError } = state
+    const { addNodes, addNodesAndEdges, setExplorationComplete, setFrontierPapers, clearAllExplorations, addError } = state
 
     switch (msg.type) {
       case "researcher_found":
@@ -18,8 +18,7 @@ const dispatchEffect = (msg: ServerMessageType): Effect.Effect<void> =>
         state.setExplorationActive(state.sessionId)
         break
       case "frontiers_discovered":
-        addNodes([...msg.nodes])
-        addEdges([...msg.edges])
+        addNodesAndEdges([...msg.nodes], [...msg.edges])
         break
       case "papers_collected": {
         const papers = msg.nodes

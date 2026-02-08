@@ -87,24 +87,15 @@ body {
   width: 200px;
   padding: 12px;
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: 2px solid var(--node-color, var(--border));
   border-radius: 8px;
   font-size: 12px;
   color: var(--text);
   pointer-events: auto;
 }
 
-.node-researcher {
-  border-color: var(--blue);
-}
-
-.node-frontier {
-  border-color: var(--green);
-}
-
 .node-paper {
   width: 180px;
-  border-color: #d2a8ff;
 }
 
 .node-tldr {
@@ -119,7 +110,6 @@ body {
 
 .node-contributor {
   width: 140px;
-  border-color: #f0883e;
   padding: 8px;
 }
 
@@ -314,36 +304,23 @@ body {
 }
 
 /* Loading states */
-@keyframes pulse-border {
+@keyframes pulse-node {
   0%, 100% {
-    border-color: var(--green);
+    border-color: var(--node-color);
   }
   50% {
-    border-color: rgba(63, 185, 80, 0.3);
+    border-color: color-mix(in srgb, var(--node-color) 30%, transparent);
   }
 }
 
-@keyframes pulse-border-blue {
-  0%, 100% {
-    border-color: var(--blue);
-  }
-  50% {
-    border-color: rgba(88, 166, 255, 0.3);
-  }
-}
-
-.node-researcher.loading {
-  animation: pulse-border-blue 1.5s ease-in-out infinite;
+.node-card.loading {
+  animation: pulse-node 1.5s ease-in-out infinite;
 }
 
 .node-loading-status {
   color: var(--blue);
   font-size: 11px;
   margin-top: 6px;
-}
-
-.node-frontier.loading {
-  animation: pulse-border 1.5s ease-in-out infinite;
 }
 
 .node-actions button:disabled {
@@ -354,4 +331,34 @@ body {
 .node-actions button:disabled:hover {
   border-color: var(--border);
   color: var(--text-muted);
+}
+
+/* Depth legend */
+.depth-legend {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 50;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.depth-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.depth-legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
 }

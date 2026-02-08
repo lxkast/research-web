@@ -3,6 +3,7 @@ import { Toolbar } from "./components/Toolbar.tsx"
 import { GraphCanvas } from "./components/GraphCanvas.tsx"
 import { WsStatus } from "./components/WsStatus.tsx"
 import { ErrorToast } from "./components/ErrorToast.tsx"
+import { DepthLegend } from "./components/DepthLegend.tsx"
 import { useWebSocket } from "./hooks/useWebSocket.ts"
 import { useStore } from "./store/index.ts"
 
@@ -17,6 +18,7 @@ export function App() {
       <Toolbar />
       <WsStatus />
       <GraphCanvas />
+      <DepthLegend />
       <ErrorToast />
     </>
   )

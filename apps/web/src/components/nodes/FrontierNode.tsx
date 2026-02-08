@@ -2,14 +2,16 @@ import { Effect } from "effect"
 import type { FrontierType } from "@research-web/shared"
 import { useStore } from "../../store/index.ts"
 import { expandFrontier, elaborateFrontier } from "../../lib/actions.ts"
+import { getDepthColor } from "../../lib/depthColors.ts"
 
 export function FrontierNode({ data }: { data: FrontierType }) {
   const papers = useStore((s) => s.frontierPapers.get(data.id))
   const isLoading = useStore((s) => s.activeExplorations.has(data.id))
+  const depth = useStore((s) => s.nodeDepths.get(data.id) ?? 0)
   const hasPapers = papers && papers.length > 0
 
   return (
-    <div className={`node-card node-frontier${hasPapers ? " node-frontier-elaborated" : ""}${isLoading ? " loading" : ""}`}>
+    <div className={`node-card node-frontier${hasPapers ? " node-frontier-elaborated" : ""}${isLoading ? " loading" : ""}`} style={{ '--node-color': getDepthColor(depth) } as React.CSSProperties}>
       <div className="node-title">{data.label}</div>
       <div className="node-summary">{data.summary}</div>
       {hasPapers && (
