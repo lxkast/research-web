@@ -171,6 +171,12 @@ body {
   width: 420px;
 }
 
+.node-frontier-elaborated .node-summary {
+  -webkit-line-clamp: unset;
+  display: block;
+  overflow: visible;
+}
+
 .frontier-papers {
   border: 1px solid var(--border);
   border-radius: 4px;
