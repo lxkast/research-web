@@ -26,9 +26,16 @@ const formatPapers = (papers: readonly Paper[]): string =>
     )
     .join("\n")
 
-const stripCodeFences = (text: string): string => {
-  const match = text.match(/```(?:json)?\s*([\s\S]*?)```/)
-  return match ? match[1].trim() : text.trim()
+const extractJson = (text: string): string => {
+  // Try code fences first
+  const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/)
+  if (fenceMatch) return fenceMatch[1].trim()
+
+  // Try extracting a raw JSON array from surrounding prose
+  const arrayMatch = text.match(/\[[\s\S]*\]/)
+  if (arrayMatch) return arrayMatch[0].trim()
+
+  return text.trim()
 }
 
 export const clusterIntoFrontiers = (
@@ -39,7 +46,7 @@ export const clusterIntoFrontiers = (
     const userPrompt = `Cluster these ${papers.length} papers into research frontiers:\n\n${formatPapers(papers)}`
 
     const raw = yield* llm.complete(systemPrompt, userPrompt)
-    const cleaned = stripCodeFences(raw)
+    const cleaned = extractJson(raw)
 
     let parsed: unknown
     try {
@@ -56,11 +63,12 @@ export const clusterIntoFrontiers = (
       )
     )
 
+    const validIds = new Set(papers.map((p) => p.id))
     return clusters.map((c) => ({
       id: crypto.randomUUID(),
       label: c.label,
       summary: c.summary,
-      paperIds: [...c.paperIds],
+      paperIds: c.paperIds.filter((id) => validIds.has(id)),
       parentId: Option.none(),
     }))
   }).pipe(
@@ -83,7 +91,7 @@ export const identifySubFrontiers = (
     const userPrompt = `Research frontier: "${frontier.label}"\nSummary: ${frontier.summary}\n\nIdentify sub-frontiers from these ${papers.length} adjacent papers:\n\n${formatPapers(papers)}`
 
     const raw = yield* llm.complete(subFrontierSystemPrompt, userPrompt)
-    const cleaned = stripCodeFences(raw)
+    const cleaned = extractJson(raw)
 
     let parsed: unknown
     try {
@@ -100,11 +108,12 @@ export const identifySubFrontiers = (
       )
     )
 
+    const validIds = new Set(papers.map((p) => p.id))
     return clusters.map((c) => ({
       id: crypto.randomUUID(),
       label: c.label,
       summary: c.summary,
-      paperIds: [...c.paperIds],
+      paperIds: c.paperIds.filter((id) => validIds.has(id)),
       parentId: Option.some(frontier.id),
     }))
   }).pipe(

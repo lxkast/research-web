@@ -1,10 +1,12 @@
 import { useEffect, useRef } from "react"
 import { Graph, ExtensionCategory, register } from "@antv/g6"
 import { ReactNode } from "@antv/g6-extension-react"
-import type { GraphNodeType, ResearcherType, FrontierType } from "@research-web/shared"
+import type { GraphNodeType, ResearcherType, FrontierType, PaperType } from "@research-web/shared"
 import { useStore } from "../store/index.ts"
 import { ResearcherNode } from "./nodes/ResearcherNode.tsx"
 import { FrontierNode } from "./nodes/FrontierNode.tsx"
+import { PaperNode } from "./nodes/PaperNode.tsx"
+import { ContributorNode } from "./nodes/ContributorNode.tsx"
 
 register(ExtensionCategory.NODE, "react", ReactNode)
 
@@ -14,24 +16,48 @@ function renderNode(nodeType: GraphNodeType["type"], nodeData: unknown) {
       return <ResearcherNode data={nodeData as ResearcherType} />
     case "frontier":
       return <FrontierNode data={nodeData as FrontierType} />
+    case "paper":
+      return <PaperNode data={nodeData as PaperType} />
+    case "contributor":
+      return <ContributorNode data={nodeData as { id: string; name: string }} />
     default:
       return <div className="node-card">{nodeType}</div>
   }
 }
 
-function toG6Nodes(nodes: GraphNodeType[]) {
-  return nodes.map((n) => ({
-    id: n.data.id,
-    data: { nodeType: n.type, nodeData: n.data },
-  }))
+function nodeSize(nodeType: string): [number, number] {
+  switch (nodeType) {
+    case "paper":
+      return [180, 90]
+    case "contributor":
+      return [140, 40]
+    default:
+      return [200, 100]
+  }
 }
 
-function toG6Edges(edges: { source: string; target: string }[], offset: number) {
-  return edges.map((e, i) => ({
-    id: `edge-${offset + i}`,
-    source: e.source,
-    target: e.target,
-  }))
+function toG6Nodes(
+  nodes: GraphNodeType[],
+  nodeToCombo: Map<string, string>
+) {
+  return nodes.map((n) => {
+    const comboId = nodeToCombo.get(n.data.id)
+    return {
+      id: n.data.id,
+      data: { nodeType: n.type, nodeData: n.data },
+      ...(comboId ? { combo: "combo-" + comboId } : {}),
+    }
+  })
+}
+
+function toG6Edges(edges: { source: string; target: string; type?: string }[], offset: number) {
+  return edges
+    .filter((e) => e.type !== "has_paper" && e.type !== "has_contributor")
+    .map((e, i) => ({
+      id: `edge-${offset + i}`,
+      source: e.source,
+      target: e.target,
+    }))
 }
 
 export function GraphCanvas() {
@@ -49,19 +75,27 @@ export function GraphCanvas() {
     // Defer graph creation so StrictMode's immediate cleanup cancels the RAF
     // before a graph is ever instantiated (avoiding G6's "destroyed" warnings).
     const raf = requestAnimationFrame(() => {
-      const { nodes, edges } = useStore.getState()
+      const state = useStore.getState()
+      const { nodes, edges, combos, nodeToCombo } = state
 
       graph = new Graph({
         container,
         autoResize: true,
         data: {
-          nodes: toG6Nodes(nodes),
+          nodes: toG6Nodes(nodes, nodeToCombo),
           edges: toG6Edges(edges, 0),
+          combos: combos.map((c) => ({
+            id: "combo-" + c.comboId,
+            data: { label: c.label },
+          })),
         },
         node: {
           type: "react",
           style: {
-            size: [200, 100],
+            size: (data: Record<string, unknown>) => {
+              const d = data.data as { nodeType: string }
+              return nodeSize(d.nodeType)
+            },
             component: (data: Record<string, unknown>) => {
               const d = data.data as { nodeType: GraphNodeType["type"]; nodeData: GraphNodeType["data"] }
               return renderNode(d.nodeType, d.nodeData)
@@ -74,13 +108,31 @@ export function GraphCanvas() {
             lineWidth: 1,
           },
         },
+        combo: {
+          type: "rect",
+          style: {
+            radius: 8,
+            padding: [36, 16, 16, 16],
+            lineWidth: 1,
+            stroke: "#30363d",
+            fill: "#161b22",
+            fillOpacity: 0.5,
+            labelText: (d: Record<string, unknown>) => {
+              const data = d.data as { label?: string } | undefined
+              return data?.label ?? ""
+            },
+            labelPlacement: "top",
+            labelFill: "#8b949e",
+            labelFontSize: 11,
+          },
+        },
         layout: {
           type: "d3-force",
           manyBody: { strength: -200 },
           link: { distance: 200 },
           collide: { radius: 120 },
         },
-        behaviors: ["drag-canvas", "zoom-canvas", "drag-element"],
+        behaviors: ["drag-canvas", "zoom-canvas", "drag-element", "collapse-expand"],
       })
 
       graphRef.current = graph
@@ -91,22 +143,39 @@ export function GraphCanvas() {
       // Subscribe to future store additions
       let prevNodes = nodes.length
       let prevEdges = edges.length
+      let prevCombos = combos.length
 
       unsubscribe = useStore.subscribe((state) => {
         if (destroyed) return
 
         const newNodeCount = state.nodes.length
         const newEdgeCount = state.edges.length
-        if (newNodeCount === prevNodes && newEdgeCount === prevEdges) return
+        const newComboCount = state.combos.length
+        if (
+          newNodeCount === prevNodes &&
+          newEdgeCount === prevEdges &&
+          newComboCount === prevCombos
+        ) return
 
-        const addedNodes = toG6Nodes(state.nodes.slice(prevNodes))
+        const addedCombos = state.combos.slice(prevCombos).map((c) => ({
+          id: "combo-" + c.comboId,
+          data: { label: c.label },
+        }))
+
+        const addedNodes = toG6Nodes(state.nodes.slice(prevNodes), state.nodeToCombo)
         const addedEdges = toG6Edges(state.edges.slice(prevEdges), prevEdges)
 
         prevNodes = newNodeCount
         prevEdges = newEdgeCount
+        prevCombos = newComboCount
 
+        if (addedCombos.length > 0) {
+          graph!.addComboData(addedCombos)
+        }
         if (addedNodes.length > 0 || addedEdges.length > 0) {
           graph!.addData({ nodes: addedNodes, edges: addedEdges })
+        }
+        if (addedCombos.length > 0 || addedNodes.length > 0 || addedEdges.length > 0) {
           graph!.render().catch(() => {})
         }
       })

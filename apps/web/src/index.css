@@ -102,6 +102,27 @@ body {
   border-color: var(--green);
 }
 
+.node-paper {
+  width: 180px;
+  border-color: #d2a8ff;
+}
+
+.node-tldr {
+  color: var(--text-muted);
+  font-size: 11px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.node-contributor {
+  width: 140px;
+  border-color: #f0883e;
+  padding: 8px;
+}
+
 .node-title {
   font-weight: 600;
   font-size: 13px;

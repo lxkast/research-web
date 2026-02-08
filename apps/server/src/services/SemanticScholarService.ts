@@ -83,7 +83,8 @@ const S2ReferencesResponse = Schema.Struct({
   data: Schema.Array(Schema.Struct({ citedPaper: S2Paper })),
 })
 
-const S2BatchResponse = Schema.Array(S2Paper)
+const S2BatchResponseItem = Schema.NullOr(S2Paper)
+const S2BatchResponse = Schema.Array(S2BatchResponseItem)
 
 // ---------------------------------------------------------------------------
 // Mapping helpers (pure)
@@ -182,6 +183,7 @@ export const SemanticScholarServiceLive = Layer.effect(
           return yield* Effect.fail(new ApiError({ message: "Rate limited by S2 API", status: 429 }))
         }
         if (response.status < 200 || response.status >= 300) {
+          console.error(`[S2] POST ${url} → ${response.status}`)
           return yield* Effect.fail(
             new ApiError({ message: `S2 API error: ${response.status}`, status: response.status })
           )
@@ -222,7 +224,7 @@ export const SemanticScholarServiceLive = Layer.effect(
           `/paper/batch?fields=${PAPER_FIELDS_BATCH}`,
           { ids: paperIds },
           S2BatchResponse
-        ).pipe(Effect.map((papers) => papers.map(mapS2Paper))),
+        ).pipe(Effect.map((papers) => papers.filter((p): p is S2PaperType => p !== null).map(mapS2Paper))),
 
       getCitations: (paperId) =>
         fetchJson(

@@ -7,7 +7,8 @@ import type { ClientMessageType, ServerMessageType } from "@research-web/shared"
 const decodeServerMessage = Schema.decodeUnknownSync(ServerMessage)
 
 export function dispatchServerMessage(msg: ServerMessageType) {
-  const { addNodes, addEdges, setExplorationComplete } = useStore.getState()
+  const state = useStore.getState()
+  const { addNodes, addEdges, setExplorationComplete, addCombo, setNodeComboBatch } = state
 
   switch (msg.type) {
     case "researcher_found":
@@ -17,10 +18,17 @@ export function dispatchServerMessage(msg: ServerMessageType) {
       addNodes([...msg.nodes])
       addEdges([...msg.edges])
       break
-    case "papers_collected":
+    case "papers_collected": {
+      const frontierNode = state.nodes.find(
+        (n) => n.type === "frontier" && n.data.id === msg.frontierId
+      )
+      const label = frontierNode?.type === "frontier" ? frontierNode.data.label : msg.frontierId
+      addCombo(msg.frontierId, label)
+      setNodeComboBatch(msg.nodes.map((n) => [n.data.id, msg.frontierId]))
       addNodes([...msg.nodes])
       addEdges([...msg.edges])
       break
+    }
     case "exploration_complete":
       setExplorationComplete(msg.explorationId)
       break

@@ -9,6 +9,8 @@ interface AppState {
   activeExplorations: Set<string>
   selectedNode: string | null
   sendWsMessage: ((msg: ClientMessageType) => void) | null
+  combos: Array<{ comboId: string; label: string }>
+  nodeToCombo: Map<string, string>
 
   addNodes: (nodes: GraphNodeType[]) => void
   addEdges: (edges: GraphEdgeType[]) => void
@@ -17,6 +19,8 @@ interface AppState {
   setExplorationActive: (id: string) => void
   setExplorationComplete: (id: string) => void
   setSendWsMessage: (fn: ((msg: ClientMessageType) => void) | null) => void
+  addCombo: (comboId: string, label: string) => void
+  setNodeComboBatch: (entries: [string, string][]) => void
   reset: () => void
 }
 
@@ -28,6 +32,8 @@ const initialState = {
   activeExplorations: new Set<string>(),
   selectedNode: null as string | null,
   sendWsMessage: null as ((msg: ClientMessageType) => void) | null,
+  combos: [] as Array<{ comboId: string; label: string }>,
+  nodeToCombo: new Map<string, string>(),
 }
 
 export const useStore = create<AppState>()((set) => ({
@@ -59,6 +65,18 @@ export const useStore = create<AppState>()((set) => ({
 
   setSendWsMessage: (fn) => set({ sendWsMessage: fn }),
 
+  addCombo: (comboId, label) =>
+    set((state) => ({ combos: [...state.combos, { comboId, label }] })),
+
+  setNodeComboBatch: (entries) =>
+    set((state) => {
+      const next = new Map(state.nodeToCombo)
+      for (const [nodeId, comboId] of entries) {
+        next.set(nodeId, comboId)
+      }
+      return { nodeToCombo: next }
+    }),
+
   reset: () =>
     set((state) => ({
       nodes: [],
@@ -66,5 +84,7 @@ export const useStore = create<AppState>()((set) => ({
       activeExplorations: new Set<string>(),
       selectedNode: null,
       sessionId: state.sessionId,
+      combos: [],
+      nodeToCombo: new Map<string, string>(),
     })),
 }))

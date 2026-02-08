@@ -16,7 +16,13 @@ export function FrontierNode({ data }: { data: FrontierType }) {
         >
           Expand
         </button>
-        <button onClick={() => console.log("elaborate", data.id)}>
+        <button
+          onClick={() =>
+            useStore
+              .getState()
+              .sendWsMessage?.({ type: "elaborate", frontierId: data.id })
+          }
+        >
           Elaborate
         </button>
       </div>
