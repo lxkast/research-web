@@ -166,6 +166,43 @@ body {
   color: var(--text);
 }
 
+/* Elaborated frontier with inline papers */
+.node-frontier-elaborated {
+  width: 300px;
+}
+
+.frontier-papers {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 8px;
+}
+
+.frontier-paper-item {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.frontier-paper-item:last-child {
+  border-bottom: none;
+}
+
+.frontier-paper-title {
+  font-size: 11px;
+  font-weight: 500;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.frontier-paper-stats {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
 /* WS status indicator */
 .ws-status {
   position: absolute;

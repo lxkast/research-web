@@ -25,12 +25,17 @@ function renderNode(nodeType: GraphNodeType["type"], nodeData: unknown) {
   }
 }
 
-function nodeSize(nodeType: string): [number, number] {
+function nodeSize(nodeType: string, nodeId?: string): [number, number] {
   switch (nodeType) {
     case "paper":
       return [180, 90]
     case "contributor":
       return [140, 40]
+    case "frontier":
+      if (nodeId && useStore.getState().frontierPapers.has(nodeId)) {
+        return [300, 350]
+      }
+      return [200, 100]
     default:
       return [200, 100]
   }
@@ -93,8 +98,8 @@ export function GraphCanvas() {
           type: "react",
           style: {
             size: (data: Record<string, unknown>) => {
-              const d = data.data as { nodeType: string }
-              return nodeSize(d.nodeType)
+              const d = data.data as { nodeType: string; nodeData: { id: string } }
+              return nodeSize(d.nodeType, d.nodeData.id)
             },
             component: (data: Record<string, unknown>) => {
               const d = data.data as { nodeType: GraphNodeType["type"]; nodeData: GraphNodeType["data"] }
@@ -144,6 +149,7 @@ export function GraphCanvas() {
       let prevNodes = nodes.length
       let prevEdges = edges.length
       let prevCombos = combos.length
+      let prevFrontierPapersSize = state.frontierPapers.size
 
       unsubscribe = useStore.subscribe((state) => {
         if (destroyed) return
@@ -151,33 +157,49 @@ export function GraphCanvas() {
         const newNodeCount = state.nodes.length
         const newEdgeCount = state.edges.length
         const newComboCount = state.combos.length
-        if (
-          newNodeCount === prevNodes &&
-          newEdgeCount === prevEdges &&
-          newComboCount === prevCombos
-        ) return
+        const newFrontierPapersSize = state.frontierPapers.size
 
-        const addedCombos = state.combos.slice(prevCombos).map((c) => ({
-          id: "combo-" + c.comboId,
-          data: { label: c.label },
-        }))
+        const graphChanged =
+          newNodeCount !== prevNodes ||
+          newEdgeCount !== prevEdges ||
+          newComboCount !== prevCombos
+        const papersChanged = newFrontierPapersSize !== prevFrontierPapersSize
 
-        const addedNodes = toG6Nodes(state.nodes.slice(prevNodes), state.nodeToCombo)
-        const addedEdges = toG6Edges(state.edges.slice(prevEdges), prevEdges)
+        if (!graphChanged && !papersChanged) return
 
-        prevNodes = newNodeCount
-        prevEdges = newEdgeCount
-        prevCombos = newComboCount
+        if (graphChanged) {
+          const addedCombos = state.combos.slice(prevCombos).map((c) => ({
+            id: "combo-" + c.comboId,
+            data: { label: c.label },
+          }))
 
-        if (addedCombos.length > 0) {
-          graph!.addComboData(addedCombos)
+          const addedNodes = toG6Nodes(state.nodes.slice(prevNodes), state.nodeToCombo)
+          const addedEdges = toG6Edges(state.edges.slice(prevEdges), prevEdges)
+
+          prevNodes = newNodeCount
+          prevEdges = newEdgeCount
+          prevCombos = newComboCount
+
+          if (addedCombos.length > 0) {
+            graph!.addComboData(addedCombos)
+          }
+          if (addedNodes.length > 0 || addedEdges.length > 0) {
+            graph!.addData({ nodes: addedNodes, edges: addedEdges })
+          }
         }
-        if (addedNodes.length > 0 || addedEdges.length > 0) {
-          graph!.addData({ nodes: addedNodes, edges: addedEdges })
+
+        if (papersChanged) {
+          // Update sizes for frontier nodes that now have papers
+          for (const [frontierId] of state.frontierPapers) {
+            graph!.updateNodeData([{
+              id: frontierId,
+              style: { size: [300, 350] },
+            }])
+          }
+          prevFrontierPapersSize = newFrontierPapersSize
         }
-        if (addedCombos.length > 0 || addedNodes.length > 0 || addedEdges.length > 0) {
-          graph!.render().catch(() => {})
-        }
+
+        graph!.render().catch(() => {})
       })
     })
 

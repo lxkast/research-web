@@ -1,5 +1,5 @@
 import { create } from "zustand"
-import type { GraphNodeType, GraphEdgeType, ClientMessageType } from "@research-web/shared"
+import type { GraphNodeType, GraphEdgeType, ClientMessageType, PaperType } from "@research-web/shared"
 
 interface AppState {
   sessionId: string
@@ -11,6 +11,7 @@ interface AppState {
   sendWsMessage: ((msg: ClientMessageType) => void) | null
   combos: Array<{ comboId: string; label: string }>
   nodeToCombo: Map<string, string>
+  frontierPapers: Map<string, PaperType[]>
 
   addNodes: (nodes: GraphNodeType[]) => void
   addEdges: (edges: GraphEdgeType[]) => void
@@ -21,6 +22,7 @@ interface AppState {
   setSendWsMessage: (fn: ((msg: ClientMessageType) => void) | null) => void
   addCombo: (comboId: string, label: string) => void
   setNodeComboBatch: (entries: [string, string][]) => void
+  setFrontierPapers: (frontierId: string, papers: PaperType[]) => void
   reset: () => void
 }
 
@@ -34,6 +36,7 @@ const initialState = {
   sendWsMessage: null as ((msg: ClientMessageType) => void) | null,
   combos: [] as Array<{ comboId: string; label: string }>,
   nodeToCombo: new Map<string, string>(),
+  frontierPapers: new Map<string, PaperType[]>(),
 }
 
 export const useStore = create<AppState>()((set) => ({
@@ -77,6 +80,13 @@ export const useStore = create<AppState>()((set) => ({
       return { nodeToCombo: next }
     }),
 
+  setFrontierPapers: (frontierId, papers) =>
+    set((state) => {
+      const next = new Map(state.frontierPapers)
+      next.set(frontierId, papers)
+      return { frontierPapers: next }
+    }),
+
   reset: () =>
     set((state) => ({
       nodes: [],
@@ -86,5 +96,6 @@ export const useStore = create<AppState>()((set) => ({
       sessionId: state.sessionId,
       combos: [],
       nodeToCombo: new Map<string, string>(),
+      frontierPapers: new Map<string, PaperType[]>(),
     })),
 }))
