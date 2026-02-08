@@ -11,6 +11,27 @@ const FrontierCluster = Schema.Struct({
 
 const FrontierClusters = Schema.Array(FrontierCluster)
 
+const backfillEmptyFrontiers = (
+  frontiers: Frontier[],
+  papers: readonly Paper[]
+): Frontier[] => {
+  const emptyIndices = frontiers
+    .map((f, i) => (f.paperIds.length === 0 ? i : -1))
+    .filter((i) => i >= 0)
+  if (emptyIndices.length === 0 || papers.length === 0) return frontiers
+
+  const claimed = new Set(frontiers.flatMap((f) => f.paperIds))
+  const unclaimed = papers.map((p) => p.id).filter((id) => !claimed.has(id))
+  const pool = unclaimed.length > 0 ? unclaimed : papers.map((p) => p.id)
+  const perCluster = Math.max(1, Math.ceil(pool.length / emptyIndices.length))
+
+  return frontiers.map((f, i) => {
+    const idx = emptyIndices.indexOf(i)
+    if (idx < 0) return f
+    return { ...f, paperIds: pool.slice(idx * perCluster, (idx + 1) * perCluster) }
+  })
+}
+
 const systemPrompt = `You are a research analyst. Given a list of academic papers, cluster them into 4-6 research frontiers (thematic groups).
 
 Return ONLY a JSON array with this structure:
@@ -64,13 +85,14 @@ export const clusterIntoFrontiers = (
     )
 
     const validIds = new Set(papers.map((p) => p.id))
-    return clusters.map((c) => ({
+    const mapped = clusters.map((c) => ({
       id: crypto.randomUUID(),
       label: c.label,
       summary: c.summary,
       paperIds: c.paperIds.filter((id) => validIds.has(id)),
       parentId: Option.none(),
     }))
+    return backfillEmptyFrontiers(mapped, papers)
   }).pipe(
     Effect.retry({ times: 2, while: (e) => e._tag === "ParseError" })
   )
@@ -109,13 +131,14 @@ export const identifySubFrontiers = (
     )
 
     const validIds = new Set(papers.map((p) => p.id))
-    return clusters.map((c) => ({
+    const mapped = clusters.map((c) => ({
       id: crypto.randomUUID(),
       label: c.label,
       summary: c.summary,
       paperIds: c.paperIds.filter((id) => validIds.has(id)),
       parentId: Option.some(frontier.id),
     }))
+    return backfillEmptyFrontiers(mapped, papers)
   }).pipe(
     Effect.retry({ times: 2, while: (e) => e._tag === "ParseError" })
   )
