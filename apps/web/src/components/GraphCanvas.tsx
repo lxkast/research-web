@@ -117,8 +117,8 @@ export function GraphCanvas() {
         },
         edge: {
           style: {
-            stroke: "#30363d",
-            lineWidth: 1,
+            stroke: "#8b949e",
+            lineWidth: 2,
           },
         },
         combo: {
@@ -277,12 +277,8 @@ export function GraphCanvas() {
             graph!.stopLayout()
             graph!.render().catch(() => {})
           } else {
-            // Papers changed only — redraw for size updates, then re-layout so neighbors move
             graph!.stopLayout()
-            graph!.draw().then(() => {
-              if (destroyed) return
-              return graph!.layout()
-            }).catch(() => {})
+            graph!.render().catch(() => {})
           }
         })
       })
