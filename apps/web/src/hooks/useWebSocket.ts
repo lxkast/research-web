@@ -28,6 +28,9 @@ const dispatchEffect = (msg: ServerMessageType): Effect.Effect<void> =>
         setFrontierPapers(msg.frontierId, papers)
         break
       }
+      case "exploration_started":
+        state.setExplorationActive(msg.explorationId)
+        break
       case "exploration_complete":
         setExplorationComplete(msg.explorationId)
         break

@@ -35,6 +35,10 @@ export const ServerMessage = Schema.Union(
     frontierId: Schema.String,
   }),
   Schema.Struct({
+    type: Schema.Literal("exploration_started"),
+    explorationId: Schema.String,
+  }),
+  Schema.Struct({
     type: Schema.Literal("exploration_complete"),
     explorationId: Schema.String,
   }),

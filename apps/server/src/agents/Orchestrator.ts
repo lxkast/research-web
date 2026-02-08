@@ -38,6 +38,53 @@ export const cancelSession = (
     yield* hub.broadcast(sessionId, { type: "exploration_cancelled" })
   })
 
+export const autoExpand = (
+  sessionId: string,
+  maxDepth: number
+): Effect.Effect<
+  void,
+  never,
+  OpenAlexService | ResearchGraphService | WebSocketHubService | LlmService
+> =>
+  Effect.gen(function* () {
+    const graph = yield* ResearchGraphService
+    const hub = yield* WebSocketHubService
+
+    while (true) {
+      const candidates = yield* graph.getUnexpandedFrontiers(sessionId, maxDepth)
+      if (candidates.length === 0) break
+
+      yield* Effect.forEach(
+        candidates,
+        ({ frontier }) =>
+          Effect.gen(function* () {
+            yield* hub.broadcast(sessionId, {
+              type: "exploration_started",
+              explorationId: frontier.id,
+            })
+            yield* expand(sessionId, frontier.id)
+            yield* graph.markExpanded(sessionId, frontier.id)
+            yield* hub.broadcast(sessionId, {
+              type: "exploration_complete",
+              explorationId: frontier.id,
+            })
+          }).pipe(
+            Effect.catchAll((e) =>
+              Effect.gen(function* () {
+                console.error("[autoExpand] error expanding frontier:", frontier.id, e)
+                yield* graph.markExpanded(sessionId, frontier.id)
+                yield* hub.broadcast(sessionId, {
+                  type: "exploration_complete",
+                  explorationId: frontier.id,
+                })
+              })
+            )
+          ),
+        { concurrency: 5 }
+      )
+    }
+  })
+
 export const startExploration = (
   sessionId: string,
   name: string
@@ -59,9 +106,13 @@ export const startExploration = (
     const node: GraphNodeType = { type: "researcher", data: researcher }
     yield* hub.broadcast(sessionId, { type: "researcher_found", node })
 
-    const fiber = yield* Effect.fork(discover(sessionId, researcher.id))
-    trackFiber(sessionId, fiber)
-    yield* Effect.fromFiber(fiber)
+    const discoveryFiber = yield* Effect.fork(discover(sessionId, researcher.id))
+    trackFiber(sessionId, discoveryFiber)
+    yield* Effect.fromFiber(discoveryFiber)
+
+    const autoFiber = yield* Effect.fork(autoExpand(sessionId, 3))
+    trackFiber(sessionId, autoFiber)
+    yield* Effect.fromFiber(autoFiber)
 
     yield* hub.broadcast(sessionId, {
       type: "exploration_complete",
@@ -90,10 +141,13 @@ export const expandFrontier = (
 > =>
   Effect.gen(function* () {
     const hub = yield* WebSocketHubService
+    const graph = yield* ResearchGraphService
 
     const fiber = yield* Effect.fork(expand(sessionId, frontierId))
     trackFiber(sessionId, fiber)
     yield* Effect.fromFiber(fiber)
+
+    yield* graph.markExpanded(sessionId, frontierId)
 
     yield* hub.broadcast(sessionId, {
       type: "exploration_complete",

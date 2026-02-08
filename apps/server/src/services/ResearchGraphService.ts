@@ -6,6 +6,8 @@ interface SessionState {
   frontiers: Map<string, Frontier>
   papers: Map<string, Paper>
   edges: Array<{ source: string; target: string; type: string }>
+  expandedFrontiers: Set<string>
+  frontierDepths: Map<string, number>
 }
 
 export interface ResearchGraphServiceI {
@@ -14,6 +16,8 @@ export interface ResearchGraphServiceI {
   readonly addFrontiers: (sessionId: string, parentId: string, frontiers: readonly Frontier[]) => Effect.Effect<void>
   readonly getFrontier: (sessionId: string, frontierId: string) => Effect.Effect<Frontier>
   readonly addPapers: (sessionId: string, frontierId: string, papers: readonly Paper[]) => Effect.Effect<void>
+  readonly markExpanded: (sessionId: string, frontierId: string) => Effect.Effect<void>
+  readonly getUnexpandedFrontiers: (sessionId: string, maxDepth: number) => Effect.Effect<Array<{ frontier: Frontier; depth: number }>>
 }
 
 export class ResearchGraphService extends Context.Tag("ResearchGraphService")<
@@ -27,6 +31,8 @@ export const ResearchGraphServiceStub = Layer.succeed(ResearchGraphService, {
   addFrontiers: () => Effect.die("not implemented"),
   getFrontier: () => Effect.die("not implemented"),
   addPapers: () => Effect.die("not implemented"),
+  markExpanded: () => Effect.die("not implemented"),
+  getUnexpandedFrontiers: () => Effect.die("not implemented"),
 })
 
 export const ResearchGraphServiceLive = Layer.sync(ResearchGraphService, () => {
@@ -40,6 +46,8 @@ export const ResearchGraphServiceLive = Layer.sync(ResearchGraphService, () => {
         frontiers: new Map(),
         papers: new Map(),
         edges: [],
+        expandedFrontiers: new Set(),
+        frontierDepths: new Map(),
       }
       sessions.set(sessionId, session)
     }
@@ -59,9 +67,12 @@ export const ResearchGraphServiceLive = Layer.sync(ResearchGraphService, () => {
     addFrontiers: (sessionId, parentId, frontiers) =>
       Effect.sync(() => {
         const session = ensureSession(sessionId)
+        const parentDepth = session.frontierDepths.get(parentId)
+        const childDepth = parentDepth !== undefined ? parentDepth + 1 : 0
         for (const f of frontiers) {
           session.frontiers.set(f.id, f)
           session.edges.push({ source: parentId, target: f.id, type: "has_frontier" })
+          session.frontierDepths.set(f.id, childDepth)
         }
       }),
 
@@ -80,6 +91,30 @@ export const ResearchGraphServiceLive = Layer.sync(ResearchGraphService, () => {
           session.papers.set(p.id, p)
           session.edges.push({ source: frontierId, target: p.id, type: "has_paper" })
         }
+      }),
+
+    markExpanded: (sessionId, frontierId) =>
+      Effect.sync(() => {
+        const session = ensureSession(sessionId)
+        session.expandedFrontiers.add(frontierId)
+      }),
+
+    getUnexpandedFrontiers: (sessionId, maxDepth) =>
+      Effect.sync(() => {
+        const session = ensureSession(sessionId)
+        const results: Array<{ frontier: Frontier; depth: number }> = []
+        for (const [id, frontier] of session.frontiers) {
+          const depth = session.frontierDepths.get(id) ?? 0
+          if (depth < maxDepth && !session.expandedFrontiers.has(id)) {
+            results.push({ frontier, depth })
+          }
+        }
+        results.sort((a, b) =>
+          a.depth !== b.depth
+            ? a.depth - b.depth
+            : a.frontier.paperIds.length - b.frontier.paperIds.length
+        )
+        return results
       }),
   }
 })
