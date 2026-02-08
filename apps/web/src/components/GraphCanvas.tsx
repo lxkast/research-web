@@ -25,6 +25,10 @@ function renderNode(nodeType: GraphNodeType["type"], nodeData: unknown) {
   }
 }
 
+function elaboratedFrontierHeight(paperCount: number): number {
+  return 120 + Math.min(paperCount * 45, 340)
+}
+
 function nodeSize(nodeType: string, nodeId?: string): [number, number] {
   switch (nodeType) {
     case "paper":
@@ -32,8 +36,9 @@ function nodeSize(nodeType: string, nodeId?: string): [number, number] {
     case "contributor":
       return [140, 40]
     case "frontier":
-      if (nodeId && useStore.getState().frontierPapers.has(nodeId)) {
-        return [420, 500]
+      const papers = nodeId ? useStore.getState().frontierPapers.get(nodeId) : undefined
+      if (papers && papers.length > 0) {
+        return [420, elaboratedFrontierHeight(papers.length)]
       }
       return [200, 100]
     default:
@@ -190,10 +195,10 @@ export function GraphCanvas() {
 
         if (papersChanged) {
           // Update sizes for frontier nodes that now have papers
-          for (const [frontierId] of state.frontierPapers) {
+          for (const [frontierId, papers] of state.frontierPapers) {
             graph!.updateNodeData([{
               id: frontierId,
-              style: { size: [420, 500] },
+              style: { size: [420, elaboratedFrontierHeight(papers.length)] },
             }])
           }
           prevFrontierPapersSize = newFrontierPapersSize
