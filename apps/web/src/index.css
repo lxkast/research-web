@@ -307,7 +307,7 @@ body {
   }
 }
 
-/* Frontier loading state */
+/* Loading states */
 @keyframes pulse-border {
   0%, 100% {
     border-color: var(--green);
@@ -315,6 +315,25 @@ body {
   50% {
     border-color: rgba(63, 185, 80, 0.3);
   }
+}
+
+@keyframes pulse-border-blue {
+  0%, 100% {
+    border-color: var(--blue);
+  }
+  50% {
+    border-color: rgba(88, 166, 255, 0.3);
+  }
+}
+
+.node-researcher.loading {
+  animation: pulse-border-blue 1.5s ease-in-out infinite;
+}
+
+.node-loading-status {
+  color: var(--blue);
+  font-size: 11px;
+  margin-top: 6px;
 }
 
 .node-frontier.loading {

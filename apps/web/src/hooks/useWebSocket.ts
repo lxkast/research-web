@@ -13,6 +13,7 @@ export function dispatchServerMessage(msg: ServerMessageType) {
   switch (msg.type) {
     case "researcher_found":
       addNodes([msg.node])
+      state.setExplorationActive(state.sessionId)
       break
     case "frontiers_discovered":
       addNodes([...msg.nodes])
