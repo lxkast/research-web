@@ -1,6 +1,6 @@
 import { Effect } from "effect"
 import type { GraphNodeType, GraphEdgeType } from "@research-web/shared"
-import { SemanticScholarService } from "../services/SemanticScholarService.js"
+import { OpenAlexService } from "../services/OpenAlexService.js"
 import { ResearchGraphService } from "../services/ResearchGraphService.js"
 import { WebSocketHubService } from "../services/WebSocketHubService.js"
 
@@ -10,10 +10,10 @@ export const collect = (
 ): Effect.Effect<
   void,
   never,
-  SemanticScholarService | ResearchGraphService | WebSocketHubService
+  OpenAlexService | ResearchGraphService | WebSocketHubService
 > =>
   Effect.gen(function* () {
-    const s2 = yield* SemanticScholarService
+    const s2 = yield* OpenAlexService
     const graph = yield* ResearchGraphService
     const hub = yield* WebSocketHubService
 

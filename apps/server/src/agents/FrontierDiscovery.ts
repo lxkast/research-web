@@ -1,6 +1,6 @@
 import { Effect, Option } from "effect"
 import type { Frontier, GraphNodeType, GraphEdgeType } from "@research-web/shared"
-import { SemanticScholarService } from "../services/SemanticScholarService.js"
+import { OpenAlexService } from "../services/OpenAlexService.js"
 import { ResearchGraphService } from "../services/ResearchGraphService.js"
 import { WebSocketHubService } from "../services/WebSocketHubService.js"
 import { clusterIntoFrontiers } from "./Synthesizer.js"
@@ -11,10 +11,10 @@ export const discover = (
 ): Effect.Effect<
   Frontier[],
   never,
-  SemanticScholarService | ResearchGraphService | WebSocketHubService | import("../services/LlmService.js").LlmService
+  OpenAlexService | ResearchGraphService | WebSocketHubService | import("../services/LlmService.js").LlmService
 > =>
   Effect.gen(function* () {
-    const s2 = yield* SemanticScholarService
+    const s2 = yield* OpenAlexService
     const graph = yield* ResearchGraphService
     const hub = yield* WebSocketHubService
 

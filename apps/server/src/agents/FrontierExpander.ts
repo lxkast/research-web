@@ -1,6 +1,6 @@
 import { Effect, Option } from "effect"
 import type { Paper, GraphNodeType, GraphEdgeType } from "@research-web/shared"
-import { SemanticScholarService } from "../services/SemanticScholarService.js"
+import { OpenAlexService } from "../services/OpenAlexService.js"
 import { ResearchGraphService } from "../services/ResearchGraphService.js"
 import { WebSocketHubService } from "../services/WebSocketHubService.js"
 import { LlmService } from "../services/LlmService.js"
@@ -12,10 +12,10 @@ export const expand = (
 ): Effect.Effect<
   void,
   never,
-  SemanticScholarService | ResearchGraphService | WebSocketHubService | LlmService
+  OpenAlexService | ResearchGraphService | WebSocketHubService | LlmService
 > =>
   Effect.gen(function* () {
-    const s2 = yield* SemanticScholarService
+    const s2 = yield* OpenAlexService
     const graph = yield* ResearchGraphService
     const hub = yield* WebSocketHubService
 

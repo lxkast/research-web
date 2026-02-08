@@ -4,8 +4,8 @@ import { Effect, Layer, ManagedRuntime, Schema } from "effect"
 import { ClientMessage } from "@research-web/shared"
 import { Api } from "./api/routes.js"
 import {
-  SemanticScholarServiceLive,
-  OpenAlexServiceStub,
+  SemanticScholarServiceStub,
+  OpenAlexServiceLive,
   LlmServiceLive,
   ResearchGraphServiceLive,
   WebSocketHubService,
@@ -32,8 +32,8 @@ const ApiGroupLive = HttpApiBuilder.group(Api, "api", (handlers) =>
 const ApiLive = HttpApiBuilder.api(Api).pipe(Layer.provide(ApiGroupLive))
 
 const ServiceLayer = Layer.mergeAll(
-  SemanticScholarServiceLive.pipe(Layer.provide(FetchHttpClient.layer)),
-  OpenAlexServiceStub,
+  SemanticScholarServiceStub,
+  OpenAlexServiceLive.pipe(Layer.provide(FetchHttpClient.layer)),
   LlmServiceLive,
   ResearchGraphServiceLive,
   WebSocketHubServiceLive,
