@@ -197,6 +197,7 @@ export function GraphCanvas() {
             }])
           }
           prevFrontierPapersSize = newFrontierPapersSize
+          graph!.layout()
         }
 
         graph!.render().catch(() => {})
