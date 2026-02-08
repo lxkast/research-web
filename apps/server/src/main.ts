@@ -12,7 +12,7 @@ import {
   WebSocketHubServiceLive,
 } from "./services/index.js"
 import type { WsData } from "./services/index.js"
-import { startExploration, expandFrontier, elaborateFrontier } from "./agents/Orchestrator.js"
+import { startExploration, expandFrontier, elaborateFrontier, cancelSession } from "./agents/Orchestrator.js"
 
 // --- Effect layers ---
 
@@ -88,6 +88,7 @@ Bun.serve<WsData>({
         switch (msg.type) {
           case "stop":
             console.log(`[ws] stop requested by ${ws.data.sessionId}`)
+            appRuntime.runFork(cancelSession(ws.data.sessionId))
             break
           case "expand":
             console.log(`[ws] expand requested for frontier ${msg.frontierId}`)

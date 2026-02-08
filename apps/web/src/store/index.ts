@@ -12,6 +12,7 @@ interface AppState {
   combos: Array<{ comboId: string; label: string }>
   nodeToCombo: Map<string, string>
   frontierPapers: Map<string, PaperType[]>
+  errors: Array<{ id: string; message: string }>
 
   addNodes: (nodes: GraphNodeType[]) => void
   addEdges: (edges: GraphEdgeType[]) => void
@@ -19,10 +20,13 @@ interface AppState {
   setSelectedNode: (id: string | null) => void
   setExplorationActive: (id: string) => void
   setExplorationComplete: (id: string) => void
+  clearAllExplorations: () => void
   setSendWsMessage: (fn: ((msg: ClientMessageType) => void) | null) => void
   addCombo: (comboId: string, label: string) => void
   setNodeComboBatch: (entries: [string, string][]) => void
   setFrontierPapers: (frontierId: string, papers: PaperType[]) => void
+  addError: (message: string) => void
+  dismissError: (id: string) => void
   reset: () => void
 }
 
@@ -37,6 +41,7 @@ const initialState = {
   combos: [] as Array<{ comboId: string; label: string }>,
   nodeToCombo: new Map<string, string>(),
   frontierPapers: new Map<string, PaperType[]>(),
+  errors: [] as Array<{ id: string; message: string }>,
 }
 
 export const useStore = create<AppState>()((set) => ({
@@ -66,6 +71,8 @@ export const useStore = create<AppState>()((set) => ({
       return { activeExplorations: next }
     }),
 
+  clearAllExplorations: () => set({ activeExplorations: new Set<string>() }),
+
   setSendWsMessage: (fn) => set({ sendWsMessage: fn }),
 
   addCombo: (comboId, label) =>
@@ -87,6 +94,16 @@ export const useStore = create<AppState>()((set) => ({
       return { frontierPapers: next }
     }),
 
+  addError: (message) =>
+    set((state) => ({
+      errors: [...state.errors, { id: crypto.randomUUID(), message }],
+    })),
+
+  dismissError: (id) =>
+    set((state) => ({
+      errors: state.errors.filter((e) => e.id !== id),
+    })),
+
   reset: () =>
     set((state) => ({
       nodes: [],
@@ -97,5 +114,6 @@ export const useStore = create<AppState>()((set) => ({
       combos: [],
       nodeToCombo: new Map<string, string>(),
       frontierPapers: new Map<string, PaperType[]>(),
+      errors: [],
     })),
 }))

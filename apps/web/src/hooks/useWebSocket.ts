@@ -8,7 +8,7 @@ const decodeServerMessage = Schema.decodeUnknownSync(ServerMessage)
 
 export function dispatchServerMessage(msg: ServerMessageType) {
   const state = useStore.getState()
-  const { addNodes, addEdges, setExplorationComplete, setFrontierPapers } = state
+  const { addNodes, addEdges, setExplorationComplete, setFrontierPapers, clearAllExplorations, addError } = state
 
   switch (msg.type) {
     case "researcher_found":
@@ -29,7 +29,10 @@ export function dispatchServerMessage(msg: ServerMessageType) {
       setExplorationComplete(msg.explorationId)
       break
     case "exploration_cancelled":
+      clearAllExplorations()
+      break
     case "error":
+      addError(msg.message)
       break
   }
 }

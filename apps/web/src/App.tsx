@@ -1,6 +1,8 @@
 import { SearchBar } from "./components/SearchBar.tsx"
+import { Toolbar } from "./components/Toolbar.tsx"
 import { GraphCanvas } from "./components/GraphCanvas.tsx"
 import { WsStatus } from "./components/WsStatus.tsx"
+import { ErrorToast } from "./components/ErrorToast.tsx"
 import { useWebSocket } from "./hooks/useWebSocket.ts"
 import { useStore } from "./store/index.ts"
 
@@ -12,8 +14,10 @@ export function App() {
   return (
     <>
       <SearchBar />
+      <Toolbar />
       <WsStatus />
       <GraphCanvas />
+      <ErrorToast />
     </>
   )
 }

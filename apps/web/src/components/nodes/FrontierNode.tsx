@@ -3,10 +3,11 @@ import { useStore } from "../../store/index.ts"
 
 export function FrontierNode({ data }: { data: FrontierType }) {
   const papers = useStore((s) => s.frontierPapers.get(data.id))
+  const isLoading = useStore((s) => s.activeExplorations.has(data.id))
   const hasPapers = papers && papers.length > 0
 
   return (
-    <div className={`node-card node-frontier${hasPapers ? " node-frontier-elaborated" : ""}`}>
+    <div className={`node-card node-frontier${hasPapers ? " node-frontier-elaborated" : ""}${isLoading ? " loading" : ""}`}>
       <div className="node-title">{data.label}</div>
       <div className="node-summary">{data.summary}</div>
       {hasPapers && (
@@ -23,23 +24,23 @@ export function FrontierNode({ data }: { data: FrontierType }) {
       )}
       <div className="node-actions">
         <button
-          onClick={() =>
-            useStore
-              .getState()
-              .sendWsMessage?.({ type: "expand", frontierId: data.id })
-          }
+          disabled={isLoading}
+          onClick={() => {
+            useStore.getState().sendWsMessage?.({ type: "expand", frontierId: data.id })
+            useStore.getState().setExplorationActive(data.id)
+          }}
         >
-          Expand
+          {isLoading ? "Loading\u2026" : "Expand"}
         </button>
         {!hasPapers && (
           <button
-            onClick={() =>
-              useStore
-                .getState()
-                .sendWsMessage?.({ type: "elaborate", frontierId: data.id })
-            }
+            disabled={isLoading}
+            onClick={() => {
+              useStore.getState().sendWsMessage?.({ type: "elaborate", frontierId: data.id })
+              useStore.getState().setExplorationActive(data.id)
+            }}
           >
-            Elaborate
+            {isLoading ? "Loading\u2026" : "Elaborate"}
           </button>
         )}
       </div>
